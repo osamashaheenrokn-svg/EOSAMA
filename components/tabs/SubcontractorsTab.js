@@ -1,0 +1,61 @@
+"use client";
+
+import { Plus } from "lucide-react";
+import { PrintHeader } from "../PrintHeader";
+import { PrintButton } from "../PrintButton";
+import { SubcontractorCard } from "../SubcontractorCard";
+
+export function SubcontractorsTab({
+  canAccessLimited, canEditDelete, projSubClaims, projSubPaid, subcontractors,
+  newSubcontractor, setNewSubcontractor, addSubcontractor,
+  addSubClaim, addSubPayment, deleteSubClaim, deleteSubPayment, deleteSubcontractor, attachSubClaim, attachSubPayment,
+}) {
+  return (
+    <div className="print-area">
+      <PrintHeader title="تقرير مقاولي الباطن والتوريدات" />
+      <PrintButton />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+        <div className="bg-white border border-stone-200 rounded-lg p-3">
+          <div className="text-xs text-stone-500 mb-1">إجمالي مستخلصات المقاولين</div>
+          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</div>
+        </div>
+        <div className="bg-white border border-stone-200 rounded-lg p-3">
+          <div className="text-xs text-stone-500 mb-1">إجمالي المدفوع للمقاولين</div>
+          <div className="text-lg font-bold text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubPaid.toLocaleString()} ر.س</div>
+        </div>
+        <div className="bg-white border border-stone-200 rounded-lg p-3">
+          <div className="text-xs text-stone-500 mb-1">المتبقي (مطلوب سداده)</div>
+          <div className={`text-lg font-bold ${projSubClaims - projSubPaid > 0 ? "text-rose-700" : "text-stone-500"}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Math.max(0, projSubClaims - projSubPaid).toLocaleString()} ر.س</div>
+        </div>
+      </div>
+      <div className="text-xs text-stone-500 mb-3">إجمالي مستخلصات المقاولين يُضاف تلقائيًا لإجمالي مصروفات المشروع.</div>
+
+      {canAccessLimited && (
+        <div className="flex flex-wrap gap-2 mb-5 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <input value={newSubcontractor.name} onChange={(e) => setNewSubcontractor((f) => ({ ...f, name: e.target.value }))} placeholder="اسم المقاول أو المورد" className="flex-1 min-w-[200px] border border-stone-300 rounded-lg px-3 py-2 text-sm" />
+          <input value={newSubcontractor.scope} onChange={(e) => setNewSubcontractor((f) => ({ ...f, scope: e.target.value }))} placeholder="نطاق الأعمال أو التوريد" className="flex-1 min-w-[200px] border border-stone-300 rounded-lg px-3 py-2 text-sm" />
+          <button onClick={addSubcontractor} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1">
+            <Plus className="w-4 h-4" /> إضافة مقاول جديد
+          </button>
+        </div>
+      )}
+
+      {subcontractors.length === 0 && <div className="text-stone-400 text-sm">لا يوجد مقاولو باطن مسجّلين بعد لهذا المشروع.</div>}
+      {subcontractors.map((sub) => (
+        <SubcontractorCard
+          key={sub.id}
+          sub={sub}
+          canEdit={canAccessLimited}
+          canManage={canEditDelete}
+          onAddClaim={(entry) => addSubClaim(sub.id, entry)}
+          onAddPayment={(entry) => addSubPayment(sub.id, entry)}
+          onDeleteClaim={(id) => deleteSubClaim(id)}
+          onDeletePayment={(id) => deleteSubPayment(id)}
+          onDeleteSub={() => deleteSubcontractor(sub.id)}
+          onAttachClaim={(id, file) => attachSubClaim(id, file)}
+          onAttachPayment={(id, file) => attachSubPayment(id, file)}
+        />
+      ))}
+    </div>
+  );
+}
