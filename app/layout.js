@@ -10,6 +10,10 @@ export const metadata = {
   description: "بوابة إدارة المشروعات — شركة قمة الحضارة للمقاولات",
 };
 
+export const viewport = {
+  themeColor: "#0f172a",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="ar" dir="rtl" className={`${cairo.variable} ${tajawal.variable} ${jetbrainsMono.variable} h-full antialiased`}>
