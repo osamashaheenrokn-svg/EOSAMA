@@ -21,14 +21,14 @@ function ThumbPhoto({ photo }) {
   return <img src={url} alt={photo.caption} className="w-full h-40 object-cover" />;
 }
 
-export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, projLaborCost, projSalaries, projSubClaims, projRevenue, needs }) {
+export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, projLaborCost, projStaffMonthly, projSubClaims, projRevenue, needs }) {
   return (
     <div className="print-area">
       <PrintHeader title={`تقرير مختصر — ${active.name}`} />
       <PrintButton />
 
       <div className="bg-slate-900 text-white rounded-xl p-5 mb-4">
-        <div className="text-xs text-stone-300 mb-1">إجمالي التكاليف (عهدة + عمالة + مقاولو الباطن والتوريدات + رواتب)</div>
+        <div className="text-xs text-stone-300 mb-1">إجمالي التكاليف (عهدة + عمالة + مقاولو الباطن والتوريدات + رواتب الطاقم الفني)</div>
         <div className="text-3xl font-extrabold text-amber-400" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projGrandTotal.toLocaleString()} ر.س</div>
       </div>
 
@@ -46,13 +46,13 @@ export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, p
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-4">
-          <div className="text-xs text-stone-500 mb-1">الرواتب</div>
-          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSalaries.toLocaleString()} ر.س</div>
+          <div className="text-xs text-stone-500 mb-1">رواتب الطاقم الفني</div>
+          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffMonthly.toLocaleString()} ر.س</div>
         </div>
       </div>
 
       <div className={`rounded-xl p-4 mb-5 border ${needs.totalNeeded > 0 ? "bg-rose-50 border-rose-300" : "bg-emerald-50 border-emerald-200"}`}>
-        <div className="text-xs text-stone-600 mb-1">المطلوب لهذا الموقع (إجمالي المتأخرات: عجز العهدة + متبقي العمالة + متبقي مقاولي الباطن والتوريدات)</div>
+        <div className="text-xs text-stone-600 mb-1">المطلوب لهذا الموقع (إجمالي المتأخرات: عجز العهدة + متبقي العمالة + متبقي مقاولي الباطن والتوريدات + رواتب الطاقم الفني المتأخرة)</div>
         <div className={`text-2xl font-extrabold ${needs.totalNeeded > 0 ? "text-rose-700" : "text-emerald-700"}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
           {needs.totalNeeded > 0 ? needs.totalNeeded.toLocaleString() + " ر.س" : "لا يوجد مطلوب"}
         </div>

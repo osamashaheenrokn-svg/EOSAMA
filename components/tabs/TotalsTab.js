@@ -6,15 +6,15 @@ import { PrintButton } from "../PrintButton";
 import { AttachmentCell } from "../AttachmentCell";
 
 export function TotalsTab({
-  active, isOwner, canAccessLimited, projGrandTotal, projCustodySpent, projLaborCost, projSalaries, projSubClaims,
-  salaries, newSalary, setNewSalary, addSalary, projRevenue, revenues, newRevenue, setNewRevenue, addRevenue,
+  active, isOwner, canAccessLimited, projGrandTotal, projCustodySpent, projLaborCost, projStaffMonthly, projSubClaims,
+  projRevenue, revenues, newRevenue, setNewRevenue, addRevenue,
   setProjectField, projProfit, projProfitPercent, attachFile,
 }) {
   return (
     <div className="print-area">
       <PrintHeader title={`تقرير إجمالي مصروفات وإيرادات مشروع: ${active.name}`} />
       <PrintButton />
-      <div className="text-xs text-stone-500 mb-3">إجمالي تلقائي مربوط بالعهدة المصروفة، تكاليف العمالة، الرواتب، وإيرادات المشروع.</div>
+      <div className="text-xs text-stone-500 mb-3">إجمالي تلقائي مربوط بالعهدة المصروفة، تكاليف العمالة، رواتب الطاقم الفني، وإيرادات المشروع.</div>
 
       <div className="bg-slate-900 text-white rounded-xl p-5 mb-4">
         <div className="text-xs text-stone-300 mb-1">إجمالي مصروفات المشروع (الكلي)</div>
@@ -31,49 +31,13 @@ export function TotalsTab({
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projLaborCost.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
-          <div className="text-xs text-stone-500 mb-1">إجمالي الرواتب</div>
-          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSalaries.toLocaleString()} ر.س</div>
+          <div className="text-xs text-stone-500 mb-1">إجمالي رواتب الطاقم الفني <span className="text-stone-400 font-normal">(تفاصيل في تبويب &quot;الطاقم الفني&quot;)</span></div>
+          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffMonthly.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
           <div className="text-xs text-stone-500 mb-1">إجمالي مقاولي الباطن والتوريدات</div>
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</div>
         </div>
-      </div>
-
-      <div className="text-sm font-bold mb-2">رواتب المهندسين والإداريين المحمّلين على المشروع</div>
-      {isOwner && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          <input value={newSalary.month} onChange={(e) => setNewSalary((f) => ({ ...f, month: e.target.value }))} placeholder="الشهر (مثال: أغسطس 2026)" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-40" />
-          <input value={newSalary.name} onChange={(e) => setNewSalary((f) => ({ ...f, name: e.target.value }))} placeholder="اسم الموظف" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-40" />
-          <input value={newSalary.role} onChange={(e) => setNewSalary((f) => ({ ...f, role: e.target.value }))} placeholder="الوظيفة" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-56" />
-          <input value={newSalary.amount} onChange={(e) => setNewSalary((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))} placeholder="الراتب الشهري" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-32" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
-          <input value={newSalary.notes} onChange={(e) => setNewSalary((f) => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات" className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm min-w-[140px]" />
-          <button onClick={addSalary} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> إضافة</button>
-        </div>
-      )}
-      <div className="bg-white border border-stone-200 rounded-lg overflow-hidden mb-8">
-        <table className="w-full text-sm">
-          <thead className="bg-stone-50 text-stone-500 text-xs">
-            <tr><th className="text-right p-2">الشهر</th><th className="text-right p-2">الاسم</th><th className="text-right p-2">الوظيفة</th><th className="text-right p-2">الراتب</th><th className="text-right p-2">ملاحظات</th></tr>
-          </thead>
-          <tbody>
-            {salaries.length === 0 && (<tr><td colSpan={5} className="text-center text-stone-400 p-4">لا توجد رواتب مسجّلة بعد.</td></tr>)}
-            {salaries.map((s) => (
-              <tr key={s.id} className="border-t border-stone-100">
-                <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{s.month}</td>
-                <td className="p-2 font-bold">{s.name}</td>
-                <td className="p-2 text-stone-600">{s.role}</td>
-                <td className="p-2 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(s.amount).toLocaleString()}</td>
-                <td className="p-2 text-stone-600">{s.notes}</td>
-              </tr>
-            ))}
-            <tr className="border-t border-stone-200 bg-stone-50 font-bold">
-              <td className="p-2" colSpan={3}>الإجمالي</td>
-              <td className="p-2" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSalaries.toLocaleString()}</td>
-              <td className="p-2"></td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <div className="bg-emerald-700 text-white rounded-xl p-5 mb-4">

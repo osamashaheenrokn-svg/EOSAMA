@@ -3,9 +3,9 @@
 import { FileSpreadsheet } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
-import { sum } from "@/lib/db";
+import { sum, staffStatus } from "@/lib/db";
 
-export function FinancialTab({ active, detail, projGrandTotal, projRevenue, projProfit, projProfitPercent, projCustodyReceived, projCustodySpent, projLaborCost, projSalaries, projSubClaims, exportFinancialReportExcel }) {
+export function FinancialTab({ active, detail, projGrandTotal, projRevenue, projProfit, projProfitPercent, projCustodyReceived, projCustodySpent, projLaborCost, projLaborPaid, projStaffMonthly, projStaffOverdue, projSubClaims, exportFinancialReportExcel }) {
   return (
     <div className="print-area">
       <PrintHeader title={`التقرير المالي الشامل — ${active.name}`} />
@@ -75,15 +75,35 @@ export function FinancialTab({ active, detail, projGrandTotal, projRevenue, proj
         </table>
       </div>
 
-      <div className="text-sm font-bold mb-1">الرواتب ({detail.salaries.length})</div>
+      <div className="text-sm font-bold mb-1">الدفعات المصروفة للعمالة ({detail.laborPayments.length})</div>
       <div className="bg-white border border-stone-200 rounded-lg overflow-hidden mb-4">
         <table className="w-full text-xs">
-          <thead className="bg-stone-50 text-stone-500"><tr><th className="text-right p-1.5">الشهر</th><th className="text-right p-1.5">الاسم</th><th className="text-right p-1.5">الوظيفة</th><th className="text-right p-1.5">الراتب</th></tr></thead>
+          <thead className="bg-stone-50 text-stone-500"><tr><th className="text-right p-1.5">رقم الدفعة</th><th className="text-right p-1.5">التاريخ</th><th className="text-right p-1.5">المبلغ</th></tr></thead>
           <tbody>
-            {detail.salaries.map((s) => (
-              <tr key={s.id} className="border-t border-stone-100"><td className="p-1.5 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{s.month}</td><td className="p-1.5 font-bold">{s.name}</td><td className="p-1.5 text-stone-600">{s.role}</td><td className="p-1.5 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(s.amount).toLocaleString()}</td></tr>
+            {detail.laborPayments.map((l) => (
+              <tr key={l.id} className="border-t border-stone-100"><td className="p-1.5 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>دفعة {l.payment_number}</td><td className="p-1.5 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.date}</td><td className="p-1.5 font-bold text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(l.amount).toLocaleString()}</td></tr>
             ))}
-            <tr className="border-t border-stone-200 bg-stone-50 font-bold"><td className="p-1.5" colSpan={3}>الإجمالي</td><td className="p-1.5" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSalaries.toLocaleString()}</td></tr>
+            <tr className="border-t border-stone-200 bg-stone-50 font-bold"><td className="p-1.5" colSpan={2}>الإجمالي</td><td className="p-1.5 text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projLaborPaid.toLocaleString()}</td></tr>
+            <tr className="border-t border-stone-200"><td className="p-1.5 font-bold" colSpan={2}>المتبقي (مطلوب سداده)</td><td className={`p-1.5 font-bold ${projLaborCost - projLaborPaid > 0 ? "text-rose-700" : "text-stone-500"}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Math.max(0, projLaborCost - projLaborPaid).toLocaleString()}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="text-sm font-bold mb-1">الطاقم الفني ({detail.staff.length})</div>
+      <div className="bg-white border border-stone-200 rounded-lg overflow-hidden mb-4">
+        <table className="w-full text-xs">
+          <thead className="bg-stone-50 text-stone-500"><tr><th className="text-right p-1.5">الاسم</th><th className="text-right p-1.5">الوظيفة</th><th className="text-right p-1.5">الراتب الشهري</th><th className="text-right p-1.5">بداية الدوام</th><th className="text-right p-1.5">حالة الشهر الحالي</th></tr></thead>
+          <tbody>
+            {detail.staff.map((s) => {
+              const st = staffStatus(s);
+              return (
+                <tr key={s.id} className="border-t border-stone-100"><td className="p-1.5 font-bold">{s.name}</td><td className="p-1.5 text-stone-600">{s.role}</td><td className="p-1.5 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(s.monthly_salary).toLocaleString()}</td><td className="p-1.5 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{s.start_date}</td><td className={`p-1.5 font-bold ${st.overdue ? "text-rose-700" : "text-stone-600"}`}>{st.label}</td></tr>
+              );
+            })}
+            <tr className="border-t border-stone-200 bg-stone-50 font-bold"><td className="p-1.5" colSpan={2}>الإجمالي الشهري</td><td className="p-1.5" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffMonthly.toLocaleString()}</td><td className="p-1.5" colSpan={2}></td></tr>
+            {projStaffOverdue > 0 && (
+              <tr className="border-t border-stone-200"><td className="p-1.5 font-bold text-rose-700" colSpan={2}>رواتب متأخرة</td><td className="p-1.5 font-bold text-rose-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffOverdue.toLocaleString()}</td><td className="p-1.5" colSpan={2}></td></tr>
+            )}
           </tbody>
         </table>
       </div>

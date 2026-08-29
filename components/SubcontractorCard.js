@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Star } from "lucide-react";
 import { AttachmentCell } from "./AttachmentCell";
 import { RowActions } from "./RowActions";
 import { sum } from "@/lib/db";
 
-export function SubcontractorCard({ sub, canEdit, canManage, onAddClaim, onAddPayment, onDeleteClaim, onDeletePayment, onDeleteSub, onAttachClaim, onAttachPayment }) {
+export function SubcontractorCard({ sub, canEdit, canManage, onAddClaim, onAddPayment, onDeleteClaim, onDeletePayment, onDeleteSub, onAttachClaim, onAttachPayment, onRate }) {
   const [newClaim, setNewClaim] = useState({ number: "", amount: "", date: "" });
   const [newPayment, setNewPayment] = useState({ number: "", amount: "", date: "" });
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -23,6 +23,20 @@ export function SubcontractorCard({ sub, canEdit, canManage, onAddClaim, onAddPa
         <div>
           <div className="font-bold text-base" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{sub.name}</div>
           <div className="text-xs text-stone-500">{sub.scope}</div>
+          <div className="flex items-center gap-0.5 mt-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => canEdit && onRate(n)}
+                disabled={!canEdit}
+                className={n <= (sub.rating || 0) ? "text-amber-500" : "text-stone-300"}
+                title={`${n} نجوم`}
+              >
+                <Star className="w-4 h-4" fill="currentColor" />
+              </button>
+            ))}
+            {sub.rating > 0 && <span className="text-xs text-stone-400 mr-1">({sub.rating}/5)</span>}
+          </div>
         </div>
         {canManage && (
           confirmingDelete ? (

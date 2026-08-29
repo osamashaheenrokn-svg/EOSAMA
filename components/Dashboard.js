@@ -7,17 +7,35 @@ import {
   Camera, Wallet, Lock, Plus, ChevronLeft,
   Users, Vault, BarChart3, AlertTriangle, Printer,
   Home, HardHat as SubIcon, FileSpreadsheet, UserCog, LogOut,
+  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchProfiles, fetchProjects, fetchAllTeams, fetchTreasury, fetchProjectDetail, fetchCompanyFinancials, sum } from "@/lib/db";
+import {
+  fetchProfiles, fetchProjects, fetchAllTeams, fetchTreasury, fetchProjectDetail, fetchCompanyFinancials, sum,
+  fetchCompanySettings, fetchPendingApprovals, fetchCompanyAssets, fetchCompanyTools, fetchLeads, fetchAuditLog, logAction as logActionDb, daysUntil,
+  staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey,
+} from "@/lib/db";
 import { uploadAttachment } from "@/lib/attachments";
 import { HomeView } from "./views/HomeView";
 import { UsersView } from "./views/UsersView";
 import { CompanyView } from "./views/CompanyView";
 import { NeedsView } from "./views/NeedsView";
 import { TreasuryView } from "./views/TreasuryView";
+import { AuditView } from "./views/AuditView";
+import { ApprovalsView } from "./views/ApprovalsView";
+import { LeadsView } from "./views/LeadsView";
+import { MapView } from "./views/MapView";
+import { AssetsView } from "./views/AssetsView";
+import { PeriodicView } from "./views/PeriodicView";
+import { CompareView } from "./views/CompareView";
+import { NotificationsBell } from "./NotificationsBell";
+import { MoreMenu } from "./MoreMenu";
 import { UpdatesTab } from "./tabs/UpdatesTab";
 import { PhotosTab } from "./tabs/PhotosTab";
+import { StaffTab } from "./tabs/StaffTab";
+import { TimelineTab } from "./tabs/TimelineTab";
+import { DocumentsTab } from "./tabs/DocumentsTab";
+import { QaTab } from "./tabs/QaTab";
 import { CustodyTab } from "./tabs/CustodyTab";
 import { LaborTab } from "./tabs/LaborTab";
 import { TotalsTab } from "./tabs/TotalsTab";
@@ -27,11 +45,15 @@ import { SummaryTab } from "./tabs/SummaryTab";
 
 const TABS = [
   { id: "updates", label: "تطورات المشروع", icon: ChevronLeft, ownerOnly: false },
-  { id: "photos", label: "تقرير مصور", icon: Camera, ownerOnly: false },
   { id: "custody", label: "العهدة المصروفة", icon: Wallet, ownerOnly: true, accountantOk: true },
   { id: "labor", label: "تقرير العمالة اليومي", icon: Users, ownerOnly: true },
-  { id: "totals", label: "إجمالي مصروفات المشروع", icon: Vault, ownerOnly: true, accountantOk: true },
+  { id: "staff", label: "الطاقم الفني", icon: UserCog, ownerOnly: true },
+  { id: "photos", label: "تقرير مصور", icon: Camera, ownerOnly: false },
   { id: "subcontractors", label: "مقاولو الباطن والتوريدات", icon: SubIcon, ownerOnly: true, accountantOk: true },
+  { id: "timeline", label: "الجدول الزمني", icon: CalendarClock, ownerOnly: false },
+  { id: "documents", label: "مستندات المشروع", icon: FolderOpen, ownerOnly: false },
+  { id: "qa", label: "سجل تدقيق الجودة", icon: ClipboardCheck, ownerOnly: false },
+  { id: "totals", label: "إجمالي مصروفات المشروع", icon: Vault, ownerOnly: true, accountantOk: true },
   { id: "financial", label: "التقرير المالي الشامل", icon: FileSpreadsheet, ownerOnly: true, accountantOk: true },
   { id: "summary", label: "تقرير مختصر", icon: Printer, ownerOnly: true },
 ];
@@ -78,9 +100,25 @@ export function Dashboard({ profile, userEmail }) {
   const [newCustodySpent, setNewCustodySpent] = useState({ fileNumber: "", week: "", from: "", to: "", amount: "" });
   const [newLaborCost, setNewLaborCost] = useState({ week: "", from: "", to: "", count: "", cost: "", notes: "" });
   const [newLaborPayment, setNewLaborPayment] = useState({ paymentNumber: "", date: "", amount: "" });
-  const [newSalary, setNewSalary] = useState({ month: "", name: "", role: "", amount: "", notes: "" });
+  const [newStaffMember, setNewStaffMember] = useState({ name: "", role: "", monthlySalary: "", startDate: "" });
   const [newRevenue, setNewRevenue] = useState({ number: "", amount: "", notes: "" });
   const [newSubcontractor, setNewSubcontractor] = useState({ name: "", scope: "" });
+  const [newPhase, setNewPhase] = useState({ name: "", plannedStart: "", plannedEnd: "" });
+  const [newDocument, setNewDocument] = useState({ category: "عقد العميل" });
+  const [newQaItem, setNewQaItem] = useState({ phase: "", item: "" });
+
+  const [lang, setLang] = useState("ar");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
+  const [companySettings, setCompanySettings] = useState(null);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [companyAssets, setCompanyAssets] = useState([]);
+  const [companyTools, setCompanyTools] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [newAsset, setNewAsset] = useState({ type: "", number: "", yearMade: "", licenseExpiry: "", insuranceExpiry: "" });
+  const [newTool, setNewTool] = useState({ type: "", quantity: "", unit: "" });
+  const [newLead, setNewLead] = useState({ name: "", phone: "", notes: "" });
 
   const isAdmin = profile.kind === "admin";
 
@@ -92,13 +130,19 @@ export function Dashboard({ profile, userEmail }) {
     if (!id) return;
     setDetail(await fetchProjectDetail(supabase, id));
   }, [supabase]);
+  const reloadCompanySettings = useCallback(async () => setCompanySettings(await fetchCompanySettings(supabase)), [supabase]);
+  const reloadPendingApprovals = useCallback(async () => setPendingApprovals(await fetchPendingApprovals(supabase)), [supabase]);
+  const reloadCompanyAssets = useCallback(async () => setCompanyAssets(await fetchCompanyAssets(supabase)), [supabase]);
+  const reloadCompanyTools = useCallback(async () => setCompanyTools(await fetchCompanyTools(supabase)), [supabase]);
+  const reloadLeads = useCallback(async () => setLeads(await fetchLeads(supabase)), [supabase]);
+  const reloadAuditLog = useCallback(async () => setAuditLog(await fetchAuditLog(supabase)), [supabase]);
 
   useEffect(() => {
     (async () => {
-      await Promise.all([reloadProjects(), reloadRoster(), reloadTeams()]);
+      await Promise.all([reloadProjects(), reloadRoster(), reloadTeams(), reloadCompanySettings()]);
       setLoadingInitial(false);
     })();
-  }, [reloadProjects, reloadRoster, reloadTeams]);
+  }, [reloadProjects, reloadRoster, reloadTeams, reloadCompanySettings]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -131,10 +175,35 @@ export function Dashboard({ profile, userEmail }) {
   }, [canSeeTreasury, reloadTreasuryData]);
 
   useEffect(() => {
-    if (canSeeTreasury && (view === "company" || view === "needs") && projects.length) {
+    if ((canSeeTreasury || canViewAllFinance) && projects.length) {
       fetchCompanyFinancials(supabase, projects).then(setCompanyFinancials).catch(() => setCompanyFinancials([]));
     }
-  }, [canSeeTreasury, view, projects, supabase]);
+  }, [canSeeTreasury, canViewAllFinance, projects, supabase]);
+
+  useEffect(() => {
+    if (!canViewAllFinance) return;
+    (async () => { await reloadCompanyAssets(); })();
+  }, [canViewAllFinance, reloadCompanyAssets]);
+
+  useEffect(() => {
+    if (!(isAdmin && view === "approvals")) return;
+    (async () => { await reloadPendingApprovals(); })();
+  }, [isAdmin, view, reloadPendingApprovals]);
+
+  useEffect(() => {
+    if (!(isAdmin && view === "assets")) return;
+    (async () => { await reloadCompanyTools(); })();
+  }, [isAdmin, view, reloadCompanyTools]);
+
+  useEffect(() => {
+    if (!(isAdmin && view === "leads")) return;
+    (async () => { await reloadLeads(); })();
+  }, [isAdmin, view, reloadLeads]);
+
+  useEffect(() => {
+    if (!(isAdmin && view === "audit")) return;
+    (async () => { await reloadAuditLog(); })();
+  }, [isAdmin, view, reloadAuditLog]);
 
   const visibleTabs = TABS.filter((t) => !t.ownerOnly || isOwner || canViewAllFinance || (t.accountantOk && isProjectAccountant));
   const effectiveTab = visibleTabs.find((t) => t.id === tab) ? tab : "updates";
@@ -148,16 +217,47 @@ export function Dashboard({ profile, userEmail }) {
   const engineerRoster = roster.filter((r) => r.kind === "engineer");
   const grantableRoster = roster.filter((r) => r.id !== profile.id);
 
+  async function logAction(action) {
+    await logActionDb(supabase, profile, action);
+    if (view === "audit") reloadAuditLog();
+  }
+
+  const notifications = [
+    ...companyFinancials.filter((n) => n.totalNeeded > 0).map((n) => ({
+      id: `need-${n.id}`, projectId: n.id, level: "danger",
+      text: `مشروع "${n.name}" محتاج تغطية ${n.totalNeeded.toLocaleString()} ر.س (عهدة/عمالة/مقاولين)`,
+    })),
+    ...companyFinancials.filter((f) => f.profit < 0).map((f) => ({
+      id: `loss-${f.id}`, projectId: f.id, level: "danger",
+      text: `مشروع "${f.name}" بيحقق خسارة حاليًا (${f.profit.toLocaleString()} ر.س)`,
+    })),
+    ...projects.filter((p) => p.pending_billing > 0).map((p) => ({
+      id: `bill-${p.id}`, projectId: p.id, level: "warning",
+      text: `مشروع "${p.name}" فيه أعمال منتهية بقيمة ${Number(p.pending_billing).toLocaleString()} ر.س لسه ما اتفوترتش`,
+    })),
+    ...companyAssets.filter((a) => a.license_expiry && daysUntil(a.license_expiry) <= 30).map((a) => {
+      const dd = daysUntil(a.license_expiry);
+      return { id: `lic-${a.id}`, targetView: "assets", level: dd < 0 ? "danger" : "warning", text: `رخصة "${a.type}" (${a.number}) ${dd < 0 ? "منتهية من " + Math.abs(dd) + " يوم" : "هتنتهي خلال " + dd + " يوم"}` };
+    }),
+    ...companyAssets.filter((a) => a.insurance_expiry && daysUntil(a.insurance_expiry) <= 30).map((a) => {
+      const dd = daysUntil(a.insurance_expiry);
+      return { id: `ins-${a.id}`, targetView: "assets", level: dd < 0 ? "danger" : "warning", text: `تأمين "${a.type}" (${a.number}) ${dd < 0 ? "منتهي من " + Math.abs(dd) + " يوم" : "هينتهي خلال " + dd + " يوم"}` };
+    }),
+  ];
+  const visibleNotifications = canViewAllFinance ? notifications : [];
+
   // ---- active-project aggregates ----
-  const d = detail || { updates: [], photos: [], custodyReceived: [], custodySpent: [], laborCosts: [], laborPayments: [], salaries: [], revenues: [], subcontractors: [] };
+  const d = detail || { updates: [], photos: [], custodyReceived: [], custodySpent: [], laborCosts: [], laborPayments: [], staff: [], revenues: [], subcontractors: [], phases: [], documents: [], qaChecklist: [] };
   const projCustodyReceived = sum(d.custodyReceived, "amount");
   const projCustodySpent = sum(d.custodySpent, "amount");
   const projLaborCost = sum(d.laborCosts, "cost");
   const projLaborPaid = sum(d.laborPayments, "amount");
-  const projSalaries = sum(d.salaries, "amount");
+  const projStaffMonthly = staffMonthlyTotal(d.staff);
+  const projStaffPaid = staffPaidTotal(d.staff);
+  const projStaffOverdue = staffOverdueTotal(d.staff);
   const projSubClaims = d.subcontractors.reduce((a, s) => a + sum(s.subcontractor_claims, "amount"), 0);
   const projSubPaid = d.subcontractors.reduce((a, s) => a + sum(s.subcontractor_payments, "amount"), 0);
-  const projGrandTotal = projCustodySpent + projLaborCost + projSalaries + projSubClaims;
+  const projGrandTotal = projCustodySpent + projLaborCost + projStaffMonthly + projSubClaims;
   const projRevenue = sum(d.revenues, "amount");
   const projProfit = projRevenue - projGrandTotal;
   const projProfitPercent = projRevenue !== 0 ? (projProfit / projRevenue) * 100 : 0;
@@ -208,6 +308,7 @@ export function Dashboard({ profile, userEmail }) {
   }
   async function deleteRow(table, id) {
     await supabase.from(table).delete().eq("id", id);
+    logAction(`حذف بند من (${table}) — ${active?.name}`);
     reloadDetail(activeId);
   }
   async function attachFile(table, id, file) {
@@ -219,31 +320,90 @@ export function Dashboard({ profile, userEmail }) {
   async function addCustodyReceived() {
     if (!newCustodyReceived.number || !newCustodyReceived.date || !newCustodyReceived.amount) return;
     await insertRow("custody_received", { project_id: activeId, number: Number(newCustodyReceived.number), date: newCustodyReceived.date, amount: Number(newCustodyReceived.amount) });
+    logAction(`إضافة عهدة مستلمة رقم ${newCustodyReceived.number} بمبلغ ${Number(newCustodyReceived.amount).toLocaleString()} ر.س — ${active?.name}`);
     setNewCustodyReceived({ number: "", date: "", amount: "" });
   }
   async function addCustodySpent() {
     if (!newCustodySpent.fileNumber || !newCustodySpent.week || !newCustodySpent.amount) return;
-    await insertRow("custody_spent", { project_id: activeId, file_number: Number(newCustodySpent.fileNumber), week: Number(newCustodySpent.week), from_date: newCustodySpent.from || null, to_date: newCustodySpent.to || null, amount: Number(newCustodySpent.amount) });
+    const amount = Number(newCustodySpent.amount);
+    const entry = { file_number: Number(newCustodySpent.fileNumber), week: Number(newCustodySpent.week), from_date: newCustodySpent.from || null, to_date: newCustodySpent.to || null, amount };
+    const threshold = Number(companySettings?.approval_threshold ?? Infinity);
+    if (!isAdmin && amount > threshold) {
+      await supabase.from("pending_approvals").insert({
+        project_id: activeId, type: "custody_spent", entry, amount,
+        requested_by: profile.id, requested_by_name: profile.name,
+      });
+      logAction(`طلب موافقة على صرف عهدة بمبلغ ${amount.toLocaleString()} ر.س (فوق حد الموافقة) — ${active?.name}`);
+    } else {
+      await insertRow("custody_spent", { project_id: activeId, ...entry });
+      logAction(`تسجيل مصروف عهدة (ملف ${newCustodySpent.fileNumber}) بمبلغ ${amount.toLocaleString()} ر.س — ${active?.name}`);
+    }
     setNewCustodySpent({ fileNumber: "", week: "", from: "", to: "", amount: "" });
+  }
+  async function approveRequest(req) {
+    await supabase.from("custody_spent").insert({ project_id: req.project_id, ...req.entry });
+    await supabase.from("pending_approvals").delete().eq("id", req.id);
+    logAction(`موافقة على صرف بمبلغ ${Number(req.amount).toLocaleString()} ر.س — ${projects.find((p) => p.id === req.project_id)?.name}`);
+    reloadPendingApprovals();
+    if (req.project_id === activeId) reloadDetail(activeId);
+  }
+  async function rejectRequest(req) {
+    await supabase.from("pending_approvals").delete().eq("id", req.id);
+    logAction(`رفض طلب صرف بمبلغ ${Number(req.amount).toLocaleString()} ر.س — ${projects.find((p) => p.id === req.project_id)?.name}`);
+    reloadPendingApprovals();
+  }
+  async function setApprovalThreshold(value) {
+    await supabase.from("company_settings").update({ approval_threshold: value }).eq("id", 1);
+    reloadCompanySettings();
+  }
+  async function setPeriodicSetting(key, value) {
+    await supabase.from("company_settings").update({ [key]: value }).eq("id", 1);
+    reloadCompanySettings();
   }
   async function addLaborCost() {
     if (!newLaborCost.week || !newLaborCost.count || !newLaborCost.cost) return;
     await insertRow("labor_costs", { project_id: activeId, week: Number(newLaborCost.week), from_date: newLaborCost.from || null, to_date: newLaborCost.to || null, count: Number(newLaborCost.count), cost: Number(newLaborCost.cost), notes: newLaborCost.notes.trim() });
+    logAction(`تسجيل تكلفة عمالة الأسبوع ${newLaborCost.week} بمبلغ ${Number(newLaborCost.cost).toLocaleString()} ر.س — ${active?.name}`);
     setNewLaborCost({ week: "", from: "", to: "", count: "", cost: "", notes: "" });
   }
   async function addLaborPayment() {
     if (!newLaborPayment.paymentNumber || !newLaborPayment.date || !newLaborPayment.amount) return;
     await insertRow("labor_payments", { project_id: activeId, payment_number: Number(newLaborPayment.paymentNumber), date: newLaborPayment.date, amount: Number(newLaborPayment.amount) });
+    logAction(`تسجيل دفعة عمالة رقم ${newLaborPayment.paymentNumber} بمبلغ ${Number(newLaborPayment.amount).toLocaleString()} ر.س — ${active?.name}`);
     setNewLaborPayment({ paymentNumber: "", date: "", amount: "" });
   }
-  async function addSalary() {
-    if (!newSalary.month.trim() || !newSalary.name.trim() || !newSalary.amount) return;
-    await insertRow("salaries", { project_id: activeId, month: newSalary.month.trim(), name: newSalary.name.trim(), role: newSalary.role.trim(), amount: Number(newSalary.amount), notes: newSalary.notes.trim() });
-    setNewSalary({ month: "", name: "", role: "", amount: "", notes: "" });
+  async function addStaffMember() {
+    if (!newStaffMember.name.trim() || !newStaffMember.role.trim() || !newStaffMember.monthlySalary || !newStaffMember.startDate) return;
+    await supabase.from("staff").insert({
+      project_id: activeId, name: newStaffMember.name.trim(), role: newStaffMember.role.trim(),
+      monthly_salary: Number(newStaffMember.monthlySalary), start_date: newStaffMember.startDate,
+    });
+    logAction(`تسجيل "${newStaffMember.name.trim()}" (${newStaffMember.role.trim()}) في الطاقم الفني براتب شهري ${Number(newStaffMember.monthlySalary).toLocaleString()} ر.س — ${active?.name}`);
+    setNewStaffMember({ name: "", role: "", monthlySalary: "", startDate: "" });
+    reloadDetail(activeId);
+  }
+  async function deleteStaffMember(staffId) {
+    await supabase.from("staff").delete().eq("id", staffId);
+    logAction(`حذف عضو من الطاقم الفني — ${active?.name}`);
+    reloadDetail(activeId);
+  }
+  async function markStaffPaid(staffId) {
+    const member = d.staff.find((s) => s.id === staffId);
+    if (!member) return;
+    const month = currentMonthKey();
+    await supabase.from("staff_payments").insert({ staff_id: staffId, month, amount: member.monthly_salary, paid_date: new Date().toISOString().slice(0, 10) });
+    logAction(`تسجيل صرف راتب "${member.name}" لشهر ${month} بمبلغ ${Number(member.monthly_salary).toLocaleString()} ر.س — ${active?.name}`);
+    reloadDetail(activeId);
+  }
+  async function unmarkStaffPaid(staffId) {
+    const month = currentMonthKey();
+    await supabase.from("staff_payments").delete().eq("staff_id", staffId).eq("month", month);
+    reloadDetail(activeId);
   }
   async function addRevenue() {
     if (!newRevenue.number || !newRevenue.amount) return;
     await insertRow("revenues", { project_id: activeId, number: Number(newRevenue.number), amount: Number(newRevenue.amount), notes: newRevenue.notes.trim(), date: new Date().toISOString().slice(0, 10) });
+    logAction(`إضافة مستخلص رقم ${newRevenue.number} بقيمة ${Number(newRevenue.amount).toLocaleString()} ر.س — ${active?.name}`);
     setNewRevenue({ number: "", amount: "", notes: "" });
   }
 
@@ -251,14 +411,27 @@ export function Dashboard({ profile, userEmail }) {
   async function addSubcontractor() {
     if (!newSubcontractor.name.trim()) return;
     await insertRow("subcontractors", { project_id: activeId, name: newSubcontractor.name.trim(), scope: newSubcontractor.scope.trim() });
+    logAction(`إضافة مقاول/مورد جديد "${newSubcontractor.name.trim()}" — ${active?.name}`);
     setNewSubcontractor({ name: "", scope: "" });
   }
-  async function deleteSubcontractor(id) { await deleteRow("subcontractors", id); }
+  async function deleteSubcontractor(id) {
+    const sub = d.subcontractors.find((s) => s.id === id);
+    await deleteRow("subcontractors", id);
+    logAction(`حذف المقاول/المورد "${sub?.name || id}" — ${active?.name}`);
+  }
+  async function rateSubcontractor(subId, rating) {
+    await supabase.from("subcontractors").update({ rating }).eq("id", subId);
+    reloadDetail(activeId);
+  }
   async function addSubClaim(subId, entry) {
     await insertRow("subcontractor_claims", { subcontractor_id: subId, number: Number(entry.number), amount: Number(entry.amount), date: entry.date || null });
+    const sub = d.subcontractors.find((s) => s.id === subId);
+    logAction(`إضافة مستخلص رقم ${entry.number} بقيمة ${Number(entry.amount).toLocaleString()} ر.س للمقاول "${sub?.name}" — ${active?.name}`);
   }
   async function addSubPayment(subId, entry) {
     await insertRow("subcontractor_payments", { subcontractor_id: subId, number: Number(entry.number), amount: Number(entry.amount), date: entry.date || null });
+    const sub = d.subcontractors.find((s) => s.id === subId);
+    logAction(`تسجيل دفعة رقم ${entry.number} بقيمة ${Number(entry.amount).toLocaleString()} ر.س للمقاول "${sub?.name}" — ${active?.name}`);
   }
   async function deleteSubClaim(id) { await deleteRow("subcontractor_claims", id); }
   async function deleteSubPayment(id) { await deleteRow("subcontractor_payments", id); }
@@ -271,6 +444,119 @@ export function Dashboard({ profile, userEmail }) {
     const path = await uploadAttachment(supabase, activeId, file);
     await supabase.from("subcontractor_payments").update({ attachment_path: path }).eq("id", id);
     reloadDetail(activeId);
+  }
+
+  // ---------------- timeline / documents / QA ----------------
+  async function addPhase() {
+    if (!newPhase.name.trim()) return;
+    await supabase.from("project_phases").insert({ project_id: activeId, name: newPhase.name.trim(), planned_start: newPhase.plannedStart || null, planned_end: newPhase.plannedEnd || null });
+    logAction(`إضافة مرحلة "${newPhase.name.trim()}" للجدول الزمني — ${active?.name}`);
+    setNewPhase({ name: "", plannedStart: "", plannedEnd: "" });
+    reloadDetail(activeId);
+  }
+  async function updatePhaseField(phaseId, field, value) {
+    await supabase.from("project_phases").update({ [field]: value || null }).eq("id", phaseId);
+    reloadDetail(activeId);
+  }
+  async function deletePhase(phaseId) {
+    await supabase.from("project_phases").delete().eq("id", phaseId);
+    reloadDetail(activeId);
+  }
+
+  async function addDocument(category, file) {
+    if (!file) return;
+    const path = await uploadAttachment(supabase, activeId, file);
+    await supabase.from("project_documents").insert({ project_id: activeId, category, name: file.name, attachment_path: path });
+    logAction(`رفع مستند (${category}) — ${active?.name}`);
+    setNewDocument({ category: "عقد العميل" });
+    reloadDetail(activeId);
+  }
+  async function deleteDocument(docId) {
+    await supabase.from("project_documents").delete().eq("id", docId);
+    reloadDetail(activeId);
+  }
+
+  async function addQaItem() {
+    if (!newQaItem.phase.trim() || !newQaItem.item.trim()) return;
+    await supabase.from("qa_checklist").insert({ project_id: activeId, phase: newQaItem.phase.trim(), item: newQaItem.item.trim() });
+    setNewQaItem({ phase: "", item: "" });
+    reloadDetail(activeId);
+  }
+  async function toggleQaItem(itemId, checked) {
+    await supabase.from("qa_checklist").update({ checked }).eq("id", itemId);
+    reloadDetail(activeId);
+  }
+  async function deleteQaItem(itemId) {
+    await supabase.from("qa_checklist").delete().eq("id", itemId);
+    reloadDetail(activeId);
+  }
+
+  // ---------------- map ----------------
+  async function setProjectFieldFor(projectId, key, value) {
+    await supabase.from("projects").update({ [key]: value }).eq("id", projectId);
+    reloadProjects();
+  }
+
+  // ---------------- company assets / tools ----------------
+  async function addAsset() {
+    if (!newAsset.type.trim() || !newAsset.number.trim()) return;
+    await supabase.from("company_assets").insert({ type: newAsset.type.trim(), number: newAsset.number.trim(), year_made: Number(newAsset.yearMade) || null, license_expiry: newAsset.licenseExpiry || null, insurance_expiry: newAsset.insuranceExpiry || null });
+    logAction(`إضافة أصل جديد "${newAsset.type.trim()}" (${newAsset.number.trim()})`);
+    setNewAsset({ type: "", number: "", yearMade: "", licenseExpiry: "", insuranceExpiry: "" });
+    reloadCompanyAssets();
+  }
+  async function updateAssetField(assetId, field, value) {
+    await supabase.from("company_assets").update({ [field]: value || null }).eq("id", assetId);
+    reloadCompanyAssets();
+  }
+  async function deleteAsset(assetId) {
+    await supabase.from("company_assets").delete().eq("id", assetId);
+    logAction("حذف أصل من سجل أصول الشركة");
+    reloadCompanyAssets();
+  }
+  async function addAssetDocument(assetId, file) {
+    const path = await uploadAttachment(supabase, `assets/${assetId}`, file);
+    await supabase.from("asset_documents").insert({ asset_id: assetId, name: file.name, attachment_path: path });
+    logAction(`رفع مستند لأصل "${companyAssets.find((a) => a.id === assetId)?.type}"`);
+    reloadCompanyAssets();
+  }
+  async function deleteAssetDocument(assetId, docId) {
+    await supabase.from("asset_documents").delete().eq("id", docId);
+    reloadCompanyAssets();
+  }
+
+  async function addTool() {
+    if (!newTool.type.trim() || !newTool.quantity) return;
+    await supabase.from("company_tools").insert({ type: newTool.type.trim(), quantity: Number(newTool.quantity), unit: newTool.unit.trim() });
+    logAction(`إضافة صنف عدة/أدوات "${newTool.type.trim()}" — الكمية ${newTool.quantity}`);
+    setNewTool({ type: "", quantity: "", unit: "" });
+    reloadCompanyTools();
+  }
+  async function updateToolField(toolId, field, value) {
+    await supabase.from("company_tools").update({ [field]: field === "quantity" ? Number(value) || 0 : value }).eq("id", toolId);
+    reloadCompanyTools();
+  }
+  async function deleteTool(toolId) {
+    await supabase.from("company_tools").delete().eq("id", toolId);
+    logAction("حذف صنف من سجل العدة والأدوات");
+    reloadCompanyTools();
+  }
+
+  // ---------------- leads ----------------
+  async function addLead() {
+    if (!newLead.name.trim()) return;
+    await supabase.from("leads").insert({ name: newLead.name.trim(), phone: newLead.phone.trim(), notes: newLead.notes.trim() });
+    setNewLead({ name: "", phone: "", notes: "" });
+    reloadLeads();
+  }
+  async function setLeadStatus(leadId, status) {
+    await supabase.from("leads").update({ status }).eq("id", leadId);
+    reloadLeads();
+  }
+  function convertLeadToProject(lead) {
+    setNewProjectForm((f) => ({ ...f, name: lead.name }));
+    setView("home");
+    setShowAddProject(true);
   }
 
   // ---------------- admin: projects / users / teams ----------------
@@ -296,19 +582,24 @@ export function Dashboard({ profile, userEmail }) {
     });
     const body = await res.json();
     if (!res.ok) { setUserActionError(body.error || "تعذّر حذف المستخدم"); return; }
+    const u = roster.find((r) => r.id === userId);
+    logAction(`حذف المستخدم "${u?.name || userId}" وإلغاء كل صلاحياته`);
     await Promise.all([reloadRoster(), reloadProjects(), reloadTeams()]);
   }
 
   async function addProject() {
     if (!newProjectForm.name.trim()) return;
     let engineerId = null;
+    let engineerName = "";
     if (newProjectForm.engineerMode === "existing") {
       if (!newProjectForm.existingEngineerId) return;
       engineerId = newProjectForm.existingEngineerId;
+      engineerName = engineerRoster.find((r) => r.id === engineerId)?.name || "";
     } else {
       if (!newProjectForm.newEngineerName.trim() || !newProjectForm.newEngineerEmail.trim()) return;
       engineerId = await createUserAccount({ name: newProjectForm.newEngineerName, email: newProjectForm.newEngineerEmail, kind: "engineer" });
       if (!engineerId) return;
+      engineerName = newProjectForm.newEngineerName.trim();
     }
     await supabase.from("projects").insert({
       name: newProjectForm.name.trim(),
@@ -317,6 +608,7 @@ export function Dashboard({ profile, userEmail }) {
       contract_value: Number(newProjectForm.contractValue) || 0,
       engineer_id: engineerId,
     });
+    logAction(`إنشاء مشروع جديد "${newProjectForm.name.trim()}" — المهندس المسؤول: ${engineerName}`);
     setNewProjectForm({ name: "", location: "", duration: "", contractValue: "", engineerMode: "new", existingEngineerId: "", newEngineerName: "", newEngineerEmail: "" });
     setShowAddProject(false);
     reloadProjects();
@@ -325,6 +617,7 @@ export function Dashboard({ profile, userEmail }) {
   async function addStandaloneEngineer() {
     if (!newStandaloneEngineer.name.trim() || !newStandaloneEngineer.email.trim()) return;
     await createUserAccount({ name: newStandaloneEngineer.name, email: newStandaloneEngineer.email, kind: "engineer" });
+    logAction(`إضافة مهندس جديد "${newStandaloneEngineer.name.trim()}" (بدون مشروع بعد)`);
     setNewStandaloneEngineer({ name: "", email: "" });
   }
 
@@ -334,21 +627,31 @@ export function Dashboard({ profile, userEmail }) {
       name: newCustomUserForm.name, email: newCustomUserForm.email, kind: "custom",
       treasuryAccess: newCustomUserForm.treasury, editAccess: newCustomUserForm.edit, reportsAccess: newCustomUserForm.reports,
     });
+    logAction(`إضافة مستخدم إضافي "${newCustomUserForm.name.trim()}"`);
     setNewCustomUserForm({ name: "", email: "", treasury: false, reports: false, edit: false });
   }
 
   async function reassignProjectEngineer(projectId, engineerId) {
+    const eng = roster.find((r) => r.id === engineerId);
+    const proj = projects.find((p) => p.id === projectId);
     await supabase.from("projects").update({ engineer_id: engineerId }).eq("id", projectId);
+    logAction(`تعيين "${eng?.name}" مهندسًا مسؤولاً عن مشروع "${proj?.name}"`);
     reloadProjects();
   }
 
   async function addTeamMember(projectId, userId, roleType) {
     if (!userId) return;
+    const proj = projects.find((p) => p.id === projectId);
+    const u = roster.find((r) => r.id === userId);
     await supabase.from("project_team").upsert({ project_id: projectId, user_id: userId, role_type: roleType });
+    logAction(`إضافة "${u?.name}" لفريق مشروع "${proj?.name}" بصفة ${roleType === "engineer" ? "مهندس إضافي" : "محاسب المشروع"}`);
     reloadTeams();
   }
   async function removeTeamMember(projectId, userId) {
+    const proj = projects.find((p) => p.id === projectId);
+    const u = roster.find((r) => r.id === userId);
     await supabase.from("project_team").delete().eq("project_id", projectId).eq("user_id", userId);
+    logAction(`إزالة "${u?.name}" من فريق مشروع "${proj?.name}"`);
     reloadTeams();
   }
 
@@ -476,8 +779,11 @@ export function Dashboard({ profile, userEmail }) {
     const laborRows = [["الأسبوع", "من", "إلى", "عدد العمالة", "التكلفة"], ...d.laborCosts.map((l) => [l.week, l.from_date, l.to_date, l.count, l.cost]), [], ["الإجمالي", "", "", "", projLaborCost]];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(laborRows), "تكاليف العمالة");
 
-    const salaryRows = [["الشهر", "الاسم", "الوظيفة", "الراتب", "ملاحظات"], ...d.salaries.map((s) => [s.month, s.name, s.role, s.amount, s.notes]), [], ["الإجمالي", "", "", projSalaries, ""]];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(salaryRows), "الرواتب");
+    const laborPaymentsRows = [["رقم الدفعة", "التاريخ", "المبلغ"], ...d.laborPayments.map((l) => [l.payment_number, l.date, l.amount]), [], ["الإجمالي", "", projLaborPaid], ["المتبقي", "", Math.max(0, projLaborCost - projLaborPaid)]];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(laborPaymentsRows), "دفعات العمالة");
+
+    const staffRows = [["الاسم", "الوظيفة", "الراتب الشهري", "بداية الدوام", "حالة الشهر الحالي"], ...d.staff.map((s) => [s.name, s.role, s.monthly_salary, s.start_date, staffStatus(s).label]), [], ["إجمالي الرواتب الشهرية", "", "", "", projStaffMonthly], ["إجمالي المصروف فعليًا", "", "", "", projStaffPaid], ["رواتب متأخرة", "", "", "", projStaffOverdue]];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(staffRows), "الطاقم الفني");
 
     const revenueRows = [["رقم المستخلص", "التاريخ", "القيمة", "ملاحظات"], ...d.revenues.map((r) => [r.number, r.date, r.amount, r.notes]), [], ["الإجمالي", "", projRevenue, ""], ["أعمال منتهية غير مفوترة", "", active.pending_billing, ""]];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(revenueRows), "المستخلصات");
@@ -497,7 +803,8 @@ export function Dashboard({ profile, userEmail }) {
     const custodyNeeded = Math.max(0, -(financials.custodyReceived - financials.custodySpent));
     const laborNeeded = Math.max(0, financials.laborCost - financials.laborPaid);
     const subcontractorsNeeded = Math.max(0, financials.subClaims - financials.subPaid);
-    return { custodyNeeded, laborNeeded, subcontractorsNeeded, totalNeeded: custodyNeeded + laborNeeded + subcontractorsNeeded };
+    const staffNeeded = financials.staffOverdue || 0;
+    return { custodyNeeded, laborNeeded, subcontractorsNeeded, staffNeeded, totalNeeded: custodyNeeded + laborNeeded + subcontractorsNeeded + staffNeeded };
   }
 
   if (loadingInitial) {
@@ -505,7 +812,7 @@ export function Dashboard({ profile, userEmail }) {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen bg-stone-100 text-stone-900" style={{ fontFamily: "var(--font-tajawal), sans-serif" }}>
+    <div dir={lang === "ar" ? "rtl" : "ltr"} className="min-h-screen bg-stone-100 text-stone-900" style={{ fontFamily: "var(--font-tajawal), sans-serif" }}>
       <style>{`
         @media print {
           body * { visibility: hidden; }
@@ -542,34 +849,43 @@ export function Dashboard({ profile, userEmail }) {
             </g>
           </svg>
           <div>
-            <div className="font-extrabold text-xl" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>شركة قمة الحضارة للمقاولات</div>
-            <div className="text-xs text-stone-400" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>س.ت ١٠١٠٨٤٥٤٧٦ — الرياض، حي طويق — kemetalhadara@gmail.com</div>
+            <div className="font-extrabold text-xl" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{lang === "ar" ? "شركة قمة الحضارة للمقاولات" : "Qimmat Al-Hadara Contracting Co."}</div>
+            <div className="text-xs text-stone-400" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{lang === "ar" ? "س.ت ١٠١٠٨٤٥٤٧٦ — الرياض، حي طويق — kemetalhadara@gmail.com" : "CR 1010845476 — Riyadh, Tuwaiq — kemetalhadara@gmail.com"}</div>
           </div>
         </button>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {canViewAllFinance && (
+            <NotificationsBell
+              notifications={visibleNotifications} show={showNotifications} setShow={setShowNotifications}
+              onSelect={(n) => { if (n.targetView) { setView(n.targetView); } else { setActiveId(n.projectId); setTab("totals"); setView("projects"); } }}
+            />
+          )}
           <button onClick={() => setView("home")} className={`text-sm px-3 py-2 rounded flex items-center gap-1.5 ${view === "home" ? "bg-amber-500 text-slate-900 font-bold" : "bg-slate-800 text-stone-200"}`}>
-            <Home className="w-4 h-4" /> الرئيسية
+            <Home className="w-4 h-4" /> {lang === "ar" ? "الرئيسية" : "Home"}
           </button>
-          {canSeeTreasury && (
-            <button onClick={() => setView(view === "company" ? "projects" : "company")} className={`text-sm px-3 py-2 rounded flex items-center gap-1.5 ${view === "company" ? "bg-amber-500 text-slate-900 font-bold" : "bg-slate-800 text-stone-200"}`}>
-              <BarChart3 className="w-4 h-4" /> نظرة عامة على المشروعات
-            </button>
-          )}
-          {canSeeTreasury && (
-            <button onClick={() => setView(view === "needs" ? "projects" : "needs")} className={`text-sm px-3 py-2 rounded flex items-center gap-1.5 ${view === "needs" ? "bg-amber-500 text-slate-900 font-bold" : "bg-slate-800 text-stone-200"}`}>
-              <AlertTriangle className="w-4 h-4" /> المطلوب لكل موقع
-            </button>
-          )}
           {canSeeTreasury && (
             <button onClick={() => setView(view === "treasury" ? "projects" : "treasury")} className={`text-sm px-3 py-2 rounded flex items-center gap-1.5 ${view === "treasury" ? "bg-amber-500 text-slate-900 font-bold" : "bg-slate-800 text-stone-200"}`}>
               <Vault className="w-4 h-4" /> الخزينة الرئيسية
             </button>
           )}
-          {isAdmin && (
-            <button onClick={() => setView(view === "users" ? "projects" : "users")} className={`text-sm px-3 py-2 rounded flex items-center gap-1.5 ${view === "users" ? "bg-amber-500 text-slate-900 font-bold" : "bg-slate-800 text-stone-200"}`}>
-              <UserCog className="w-4 h-4" /> إدارة المستخدمين
-            </button>
-          )}
+          <MoreMenu
+            view={view} setView={setView} show={showMoreMenu} setShow={setShowMoreMenu}
+            items={[
+              canSeeTreasury && { id: "company", icon: BarChart3, label: "نظرة عامة على المشروعات" },
+              canSeeTreasury && { id: "needs", icon: AlertTriangle, label: "المطلوب لكل موقع" },
+              isAdmin && { id: "users", icon: UserCog, label: "إدارة المستخدمين" },
+              isAdmin && { id: "audit", icon: History, label: "سجل الأرقام" },
+              isAdmin && { id: "periodic", icon: Send, label: "التقارير الدورية" },
+              (isAdmin || canViewAllFinance) && { id: "compare", icon: BarChart3, label: "مقارنة المشروعات" },
+              isAdmin && { id: "approvals", icon: ShieldAlert, label: "طلبات الموافقة", badge: pendingApprovals.length },
+              isAdmin && { id: "leads", icon: UserPlus, label: "عملاء محتملون" },
+              { id: "map", icon: MapPin, label: "خريطة المشروعات" },
+              isAdmin && { id: "assets", icon: ClipboardCheck, label: "أصول الشركة" },
+            ].filter(Boolean)}
+          />
+          <button onClick={() => setLang((l) => (l === "ar" ? "en" : "ar"))} className="text-sm px-3 py-2 rounded flex items-center gap-1.5 bg-slate-800 text-stone-200" title="Toggle language">
+            <Globe className="w-4 h-4" /> {lang === "ar" ? "EN" : "AR"}
+          </button>
           <div className="text-xs text-stone-300 border-s border-slate-700 ps-3 flex items-center gap-2">
             <span>{profile.name} <span className="text-stone-500">({KIND_LABELS[profile.kind]})</span></span>
             <button onClick={handleSignOut} title="تسجيل الخروج" className="text-stone-300 hover:text-white">
@@ -621,6 +937,42 @@ export function Dashboard({ profile, userEmail }) {
         />
       )}
 
+      {view === "compare" && (isAdmin || canViewAllFinance) && (
+        <CompareView projects={projects} companyFinancials={companyFinancials} />
+      )}
+
+      {view === "approvals" && isAdmin && companySettings && (
+        <ApprovalsView
+          approvalThreshold={companySettings.approval_threshold} setApprovalThreshold={setApprovalThreshold}
+          pendingApprovals={pendingApprovals.map((r) => ({ ...r, project_name: projects.find((p) => p.id === r.project_id)?.name }))}
+          approveRequest={approveRequest} rejectRequest={rejectRequest}
+        />
+      )}
+
+      {view === "leads" && isAdmin && (
+        <LeadsView leads={leads} newLead={newLead} setNewLead={setNewLead} addLead={addLead} setLeadStatus={setLeadStatus} convertLeadToProject={convertLeadToProject} />
+      )}
+
+      {view === "map" && (
+        <MapView projects={projects} isAdmin={isAdmin} getMembership={getMembership} profileId={profile.id} setProjectField={setProjectFieldFor} />
+      )}
+
+      {view === "assets" && isAdmin && (
+        <AssetsView
+          companyAssets={companyAssets} newAsset={newAsset} setNewAsset={setNewAsset} addAsset={addAsset}
+          updateAssetField={updateAssetField} deleteAsset={deleteAsset} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument}
+          companyTools={companyTools} newTool={newTool} setNewTool={setNewTool} addTool={addTool} updateToolField={updateToolField} deleteTool={deleteTool}
+        />
+      )}
+
+      {view === "periodic" && isAdmin && companySettings && (
+        <PeriodicView settings={companySettings} setSettings={setPeriodicSetting} companyFinancials={companyFinancials} projects={projects} />
+      )}
+
+      {view === "audit" && isAdmin && (
+        <AuditView auditLog={auditLog} />
+      )}
+
       {view === "projects" && (
         <div className="flex" style={{ minHeight: "600px" }}>
           <div className="w-72 bg-white border-l border-stone-200 p-4">
@@ -670,6 +1022,15 @@ export function Dashboard({ profile, userEmail }) {
                 {effectiveTab === "photos" && (
                   <PhotosTab key={activeId} active={active} isOwner={isOwner} newPhotoCaption={newPhotoCaption} setNewPhotoCaption={setNewPhotoCaption} addPhoto={addPhoto} photos={d.photos} />
                 )}
+                {effectiveTab === "timeline" && (
+                  <TimelineTab key={activeId} active={active} isOwner={isOwner} phases={d.phases} newPhase={newPhase} setNewPhase={setNewPhase} addPhase={addPhase} updatePhaseField={updatePhaseField} deletePhase={deletePhase} />
+                )}
+                {effectiveTab === "documents" && (
+                  <DocumentsTab key={activeId} isOwner={isOwner} documents={d.documents} newDocument={newDocument} setNewDocument={setNewDocument} addDocument={addDocument} deleteDocument={deleteDocument} />
+                )}
+                {effectiveTab === "qa" && (
+                  <QaTab key={activeId} active={active} isOwner={isOwner} qaChecklist={d.qaChecklist} newQaItem={newQaItem} setNewQaItem={setNewQaItem} addQaItem={addQaItem} toggleQaItem={toggleQaItem} deleteQaItem={deleteQaItem} />
+                )}
                 {effectiveTab === "custody" && (canAccessLimited || canViewAllFinance) && (
                   <CustodyTab key={activeId} active={active} canAccessLimited={canAccessLimited} canEditDelete={canEditDelete}
                     projCustodyReceived={projCustodyReceived} projCustodySpent={projCustodySpent}
@@ -688,10 +1049,16 @@ export function Dashboard({ profile, userEmail }) {
                     deleteRow={deleteRow} attachFile={attachFile}
                   />
                 )}
+                {effectiveTab === "staff" && (isOwner || canViewAllFinance) && (
+                  <StaffTab key={activeId} active={active} isOwner={isOwner}
+                    staff={d.staff} projStaffMonthly={projStaffMonthly} projStaffPaid={projStaffPaid} projStaffOverdue={projStaffOverdue}
+                    newStaffMember={newStaffMember} setNewStaffMember={setNewStaffMember} addStaffMember={addStaffMember}
+                    deleteStaffMember={deleteStaffMember} markStaffPaid={markStaffPaid} unmarkStaffPaid={unmarkStaffPaid}
+                  />
+                )}
                 {effectiveTab === "totals" && (canAccessLimited || canViewAllFinance) && (
                   <TotalsTab key={activeId} active={active} isOwner={isOwner} canAccessLimited={canAccessLimited}
-                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projSalaries={projSalaries} projSubClaims={projSubClaims}
-                    salaries={d.salaries} newSalary={newSalary} setNewSalary={setNewSalary} addSalary={addSalary}
+                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffMonthly={projStaffMonthly} projSubClaims={projSubClaims}
                     projRevenue={projRevenue} revenues={d.revenues} newRevenue={newRevenue} setNewRevenue={setNewRevenue} addRevenue={addRevenue}
                     setProjectField={setProjectField} projProfit={projProfit} projProfitPercent={projProfitPercent}
                     attachFile={attachFile}
@@ -702,19 +1069,20 @@ export function Dashboard({ profile, userEmail }) {
                     projSubClaims={projSubClaims} projSubPaid={projSubPaid}
                     subcontractors={d.subcontractors} newSubcontractor={newSubcontractor} setNewSubcontractor={setNewSubcontractor} addSubcontractor={addSubcontractor}
                     addSubClaim={addSubClaim} addSubPayment={addSubPayment} deleteSubClaim={deleteSubClaim} deleteSubPayment={deleteSubPayment}
-                    deleteSubcontractor={deleteSubcontractor} attachSubClaim={attachSubClaim} attachSubPayment={attachSubPayment}
+                    deleteSubcontractor={deleteSubcontractor} attachSubClaim={attachSubClaim} attachSubPayment={attachSubPayment} rateSubcontractor={rateSubcontractor}
                   />
                 )}
                 {effectiveTab === "financial" && (canAccessLimited || canViewAllFinance) && (
                   <FinancialTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projRevenue={projRevenue} projProfit={projProfit} projProfitPercent={projProfitPercent}
-                    projCustodyReceived={projCustodyReceived} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projSalaries={projSalaries}
+                    projCustodyReceived={projCustodyReceived} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projLaborPaid={projLaborPaid}
+                    projStaffMonthly={projStaffMonthly} projStaffOverdue={projStaffOverdue}
                     projSubClaims={projSubClaims} exportFinancialReportExcel={exportFinancialReportExcel}
                   />
                 )}
                 {effectiveTab === "summary" && (isOwner || canViewAllFinance) && (
-                  <SummaryTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projSalaries={projSalaries}
+                  <SummaryTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffMonthly={projStaffMonthly}
                     projSubClaims={projSubClaims} projRevenue={projRevenue}
-                    needs={computeNeeds({ custodyReceived: projCustodyReceived, custodySpent: projCustodySpent, laborCost: projLaborCost, laborPaid: projLaborPaid, subClaims: projSubClaims, subPaid: projSubPaid })}
+                    needs={computeNeeds({ custodyReceived: projCustodyReceived, custodySpent: projCustodySpent, laborCost: projLaborCost, laborPaid: projLaborPaid, subClaims: projSubClaims, subPaid: projSubPaid, staffOverdue: projStaffOverdue })}
                   />
                 )}
               </>
