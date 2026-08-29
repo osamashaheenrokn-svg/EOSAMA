@@ -17,6 +17,7 @@ import {
 } from "@/lib/db";
 import { uploadAttachment } from "@/lib/attachments";
 import { HomeView } from "./views/HomeView";
+import { ProjectDeleteModal } from "./ProjectDeleteModal";
 import { UsersView } from "./views/UsersView";
 import { CompanyView } from "./views/CompanyView";
 import { NeedsView } from "./views/NeedsView";
@@ -83,6 +84,8 @@ export function Dashboard({ profile, userEmail }) {
   const [detail, setDetail] = useState(null);
 
   const [showAddProject, setShowAddProject] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
   const [newProjectForm, setNewProjectForm] = useState({ name: "", location: "", duration: "", contractValue: "", engineerMode: "new", existingEngineerId: "", newEngineerName: "", newEngineerEmail: "" });
   const [newStandaloneEngineer, setNewStandaloneEngineer] = useState({ name: "", email: "" });
   const [newCustomUserForm, setNewCustomUserForm] = useState({ name: "", email: "", treasury: false, reports: false, edit: false });
@@ -208,11 +211,12 @@ export function Dashboard({ profile, userEmail }) {
   const visibleTabs = TABS.filter((t) => !t.ownerOnly || isOwner || canViewAllFinance || (t.accountantOk && isProjectAccountant));
   const effectiveTab = visibleTabs.find((t) => t.id === tab) ? tab : "updates";
 
-  const sortedProjects = [...projects].sort((a, b) => {
+  const sortedProjects = [...projects].filter((p) => !p.archived).sort((a, b) => {
     const aOwn = getMembership(a, profile.id) === "engineer" ? 0 : 1;
     const bOwn = getMembership(b, profile.id) === "engineer" ? 0 : 1;
     return aOwn - bOwn;
   });
+  const archivedProjects = projects.filter((p) => p.archived);
 
   const engineerRoster = roster.filter((r) => r.kind === "engineer");
   const grantableRoster = roster.filter((r) => r.id !== profile.id);
@@ -614,6 +618,31 @@ export function Dashboard({ profile, userEmail }) {
     reloadProjects();
   }
 
+  async function archiveProject(projectId) {
+    const proj = projects.find((p) => p.id === projectId);
+    await supabase.from("projects").update({ archived: true }).eq("id", projectId);
+    logAction(`أرشفة مشروع "${proj?.name}"`);
+    if (activeId === projectId) { setActiveId(null); setView("home"); }
+    reloadProjects();
+  }
+
+  async function unarchiveProject(projectId) {
+    const proj = projects.find((p) => p.id === projectId);
+    await supabase.from("projects").update({ archived: false }).eq("id", projectId);
+    logAction(`إلغاء أرشفة مشروع "${proj?.name}"`);
+    reloadProjects();
+  }
+
+  async function deleteProject(projectId) {
+    const proj = projects.find((p) => p.id === projectId);
+    if (!proj) return;
+    await supabase.from("projects").delete().eq("id", projectId);
+    logAction(`حذف مشروع "${proj.name}" نهائيًا وكل بياناته`);
+    if (activeId === projectId) { setActiveId(null); setView("home"); }
+    setProjectToDelete(null);
+    reloadProjects();
+  }
+
   async function addStandaloneEngineer() {
     if (!newStandaloneEngineer.name.trim() || !newStandaloneEngineer.email.trim()) return;
     await createUserAccount({ name: newStandaloneEngineer.name, email: newStandaloneEngineer.email, kind: "engineer" });
@@ -914,8 +943,12 @@ export function Dashboard({ profile, userEmail }) {
           newProjectForm={newProjectForm} setNewProjectForm={setNewProjectForm}
           engineerRoster={engineerRoster} addProject={addProject} userActionError={userActionError}
           setActiveId={setActiveId} setTab={setTab} setView={setView}
+          archivedProjects={archivedProjects} showArchived={showArchived} setShowArchived={setShowArchived}
+          archiveProject={archiveProject} unarchiveProject={unarchiveProject} requestDeleteProject={setProjectToDelete}
         />
       )}
+
+      <ProjectDeleteModal project={projectToDelete} onConfirm={deleteProject} onClose={() => setProjectToDelete(null)} />
 
       {view === "company" && canSeeTreasury && (
         <CompanyView companyFinancials={companyFinancials} />
@@ -978,7 +1011,7 @@ export function Dashboard({ profile, userEmail }) {
           <div className="w-72 bg-white border-l border-stone-200 p-4">
             <div className="text-xs font-bold text-stone-400 mb-3 tracking-wide">المشروعات</div>
             <div className="space-y-2">
-              {projects.map((p) => {
+              {projects.filter((p) => !p.archived).map((p) => {
                 const ownedByViewer = isAdmin || getMembership(p, profile.id) === "engineer" || getMembership(p, profile.id) === "accountant";
                 return (
                   <button key={p.id} onClick={() => { setActiveId(p.id); setTab("updates"); }}

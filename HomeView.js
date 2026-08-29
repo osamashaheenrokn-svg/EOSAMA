@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Plus, ChevronRight } from "lucide-react";
+import { Building2, Plus, ChevronRight, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 
 function progressColor(pct) {
   if (pct < 40) return { text: "text-rose-700", stroke: "#e11d48" };
@@ -12,6 +12,7 @@ export function HomeView({
   isAdmin, sortedProjects, profile, getMembership, showAddProject, setShowAddProject,
   newProjectForm, setNewProjectForm, engineerRoster, addProject, userActionError,
   setActiveId, setTab, setView,
+  archivedProjects = [], showArchived, setShowArchived, archiveProject, unarchiveProject, requestDeleteProject,
 }) {
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -41,9 +42,16 @@ export function HomeView({
            "مرحبًا بك، اختر موقعك لممارسة صلاحياتك، أو اطّلع على باقي المشروعات."}
         </div>
         {isAdmin && (
-          <button onClick={() => setShowAddProject((s) => !s)} className="mt-4 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
-            <Plus className="w-4 h-4" /> إضافة مشروع جديد
-          </button>
+          <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
+            <button onClick={() => setShowAddProject((s) => !s)} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
+              <Plus className="w-4 h-4" /> إضافة مشروع جديد
+            </button>
+            {archivedProjects.length > 0 && (
+              <button onClick={() => setShowArchived((s) => !s)} className="border border-stone-300 text-stone-600 px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
+                <Archive className="w-4 h-4" /> الأرشيف ({archivedProjects.length})
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -124,35 +132,72 @@ export function HomeView({
           const owned = getMembership(p, profile.id) === "engineer";
           const pc = progressColor(p.progress);
           return (
-            <button
+            <div
               key={p.id}
-              onClick={() => { setActiveId(p.id); setTab("updates"); setView("projects"); }}
               className={`text-right bg-white rounded-2xl border-2 p-5 hover:shadow-lg transition-shadow ${owned ? "border-amber-400" : "border-stone-200"}`}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${owned ? "bg-amber-100" : "bg-slate-100"}`}>
-                  <Building2 className={`w-7 h-7 ${owned ? "text-amber-600" : "text-slate-500"}`} />
+              <button onClick={() => { setActiveId(p.id); setTab("updates"); setView("projects"); }} className="text-right w-full">
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${owned ? "bg-amber-100" : "bg-slate-100"}`}>
+                    <Building2 className={`w-7 h-7 ${owned ? "text-amber-600" : "text-slate-500"}`} />
+                  </div>
+                  {owned && <span className="text-xs bg-amber-500 text-slate-900 font-bold px-2 py-1 rounded-full">موقعك</span>}
                 </div>
-                {owned && <span className="text-xs bg-amber-500 text-slate-900 font-bold px-2 py-1 rounded-full">موقعك</span>}
-              </div>
-              <div className="font-extrabold text-lg mb-1" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{p.name}</div>
-              <div className="text-xs text-stone-500 mb-3">{p.location}</div>
-              <div className="flex items-center justify-between mb-3">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "جاري" ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-700"}`}>{p.status}</span>
-              </div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex-1 bg-stone-200 rounded-full h-2 overflow-hidden">
-                  <div className="h-2 rounded-full" style={{ width: `${p.progress}%`, backgroundColor: pc.stroke }} />
+                <div className="font-extrabold text-lg mb-1" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{p.name}</div>
+                <div className="text-xs text-stone-500 mb-3">{p.location}</div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "جاري" ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-700"}`}>{p.status}</span>
                 </div>
-                <span className={`text-xs font-bold ${pc.text}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{p.progress}%</span>
-              </div>
-              <div className="flex items-center justify-center gap-1 text-sm font-bold text-slate-900 border-t border-stone-100 pt-3">
-                دخول {owned ? "وإدارة الموقع" : "للاطّلاع"} <ChevronRight className="w-4 h-4" />
-              </div>
-            </button>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex-1 bg-stone-200 rounded-full h-2 overflow-hidden">
+                    <div className="h-2 rounded-full" style={{ width: `${p.progress}%`, backgroundColor: pc.stroke }} />
+                  </div>
+                  <span className={`text-xs font-bold ${pc.text}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{p.progress}%</span>
+                </div>
+                <div className="flex items-center justify-center gap-1 text-sm font-bold text-slate-900 border-t border-stone-100 pt-3">
+                  دخول {owned ? "وإدارة الموقع" : "للاطّلاع"} <ChevronRight className="w-4 h-4" />
+                </div>
+              </button>
+
+              {isAdmin && (
+                <div className="flex items-center gap-2 border-t border-stone-100 mt-3 pt-3">
+                  <button onClick={() => archiveProject(p.id)} className="flex-1 text-xs text-stone-600 border border-stone-300 rounded-lg px-2 py-1.5 flex items-center justify-center gap-1">
+                    <Archive className="w-3.5 h-3.5" /> أرشفة
+                  </button>
+                  <button onClick={() => requestDeleteProject(p)} className="flex-1 text-xs text-rose-600 border border-rose-200 rounded-lg px-2 py-1.5 flex items-center justify-center gap-1">
+                    <Trash2 className="w-3.5 h-3.5" /> حذف
+                  </button>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
+
+      {isAdmin && showArchived && archivedProjects.length > 0 && (
+        <div className="mt-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Archive className="w-5 h-5 text-stone-500" />
+            <div className="font-bold text-lg" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>المشروعات المؤرشفة</div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {archivedProjects.map((p) => (
+              <div key={p.id} className="bg-stone-50 rounded-2xl border-2 border-stone-200 p-5 opacity-80">
+                <div className="font-extrabold text-lg mb-1" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{p.name}</div>
+                <div className="text-xs text-stone-500 mb-4">{p.location}</div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => unarchiveProject(p.id)} className="flex-1 text-xs text-stone-700 border border-stone-300 bg-white rounded-lg px-2 py-1.5 flex items-center justify-center gap-1">
+                    <ArchiveRestore className="w-3.5 h-3.5" /> إلغاء الأرشفة
+                  </button>
+                  <button onClick={() => requestDeleteProject(p)} className="flex-1 text-xs text-rose-600 border border-rose-200 bg-white rounded-lg px-2 py-1.5 flex items-center justify-center gap-1">
+                    <Trash2 className="w-3.5 h-3.5" /> حذف نهائي
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
