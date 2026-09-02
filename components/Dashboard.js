@@ -274,7 +274,13 @@ export function Dashboard({ profile, userEmail }) {
   const totalWithdrawals = t?.override_capital_returned ?? autoWithdrawals;
   const netInvested = totalDeposits - totalWithdrawals;
   const custodyRemaining = Number(t?.cash_custody_remaining || 0) + Number(t?.company_sheet_remaining || 0);
-  const autoNetProfit = Number(t?.external_claims || 0) + custodyRemaining - netInvested;
+  const overdueCustodyTotal = sum(companyFinancials, "custodyNeeded");
+  const overdueLaborTotal = sum(companyFinancials, "laborNeeded");
+  const overdueSubcontractorsTotal = sum(companyFinancials, "subcontractorsNeeded");
+  const overdueTax = Number(t?.overdue_tax || 0);
+  const otherPendingAmount = Number(t?.other_pending_amount || 0);
+  const totalOverdueAmounts = overdueCustodyTotal + overdueLaborTotal + overdueSubcontractorsTotal + overdueTax + otherPendingAmount;
+  const autoNetProfit = Number(t?.external_claims || 0) + custodyRemaining - netInvested - totalOverdueAmounts;
   const netProfit = t?.override_net_profit ?? autoNetProfit;
 
   async function handleSignOut() {
@@ -694,6 +700,10 @@ export function Dashboard({ profile, userEmail }) {
     await supabase.from("treasury").update({ [key]: value === "" ? 0 : Number(value) }).eq("id", 1);
     reloadTreasuryData();
   }
+  async function setTreasuryTextField(key, value) {
+    await supabase.from("treasury").update({ [key]: value }).eq("id", 1);
+    reloadTreasuryData();
+  }
   async function setOverride(key, value) {
     await supabase.from("treasury").update({ [key]: value === "" ? null : Number(value) }).eq("id", 1);
     reloadTreasuryData();
@@ -967,6 +977,9 @@ export function Dashboard({ profile, userEmail }) {
           newWithdrawal={newWithdrawal} setNewWithdrawal={setNewWithdrawal} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal}
           importMessage={importMessage} importTreasuryFromExcel={importTreasuryFromExcel}
           grantableRoster={grantableRoster} setUserFlag={setUserFlag}
+          setTreasuryTextField={setTreasuryTextField} setView={setView}
+          overdueCustodyTotal={overdueCustodyTotal} overdueLaborTotal={overdueLaborTotal}
+          overdueSubcontractorsTotal={overdueSubcontractorsTotal} totalOverdueAmounts={totalOverdueAmounts}
         />
       )}
 
