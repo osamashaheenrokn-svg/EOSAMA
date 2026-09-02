@@ -7,10 +7,11 @@ import { RowActions } from "../RowActions";
 
 export function TreasuryView({
   isAdmin, treasuryData, t, totalDeposits, totalWithdrawals, netInvested, custodyRemaining, netProfit,
-  setTreasuryField, setOverride, clearOverride,
+  setTreasuryField, setOverride, clearOverride, setTreasuryTextField, setView,
   newDeposit, setNewDeposit, addDeposit, deleteDeposit,
   newWithdrawal, setNewWithdrawal, addWithdrawal, deleteWithdrawal,
   importMessage, importTreasuryFromExcel, grantableRoster, setUserFlag,
+  overdueCustodyTotal, overdueLaborTotal, overdueSubcontractorsTotal, totalOverdueAmounts,
 }) {
   if (!t) return null;
 
@@ -54,6 +55,75 @@ export function TreasuryView({
         <div className="bg-white border border-stone-200 rounded-lg p-4">
           <div className="text-xs text-stone-500 mb-1">مستخلصات خارجية وتعليات</div>
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(t.external_claims).toLocaleString()} ر.س</div>
+        </div>
+      </div>
+
+      <div className="bg-white border-2 border-rose-200 rounded-lg p-4 mb-6">
+        <div className="text-sm font-bold mb-1 text-rose-800">المبالغ المتأخرة</div>
+        <div className="text-xs text-stone-500 mb-3">مبالغ مستحقة من الخزينة الرئيسية لمواقع أو جهات معيّنة ولسه متسددتش — مخصومة أصلاً من صافي الربح أعلاه.</div>
+
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 mb-4 text-center">
+          <div className="text-xs text-rose-700 mb-1">إجمالي المبالغ المتأخرة</div>
+          <div className="text-xl font-bold text-rose-800" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{totalOverdueAmounts.toLocaleString(undefined, { maximumFractionDigits: 2 })} ر.س</div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <button onClick={() => setView("needs")} className="text-right bg-stone-50 border border-stone-200 rounded-lg p-3 hover:bg-stone-100">
+            <div className="text-xs text-stone-500 mb-1">العهدة المتأخرة للمواقع</div>
+            <div className="font-bold text-rose-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{overdueCustodyTotal.toLocaleString()} ر.س</div>
+            <div className="text-[10px] text-stone-400 mt-1">دوس لتفاصيل كل موقع</div>
+          </button>
+          <button onClick={() => setView("needs")} className="text-right bg-stone-50 border border-stone-200 rounded-lg p-3 hover:bg-stone-100">
+            <div className="text-xs text-stone-500 mb-1">المبالغ المتأخرة للعمالة</div>
+            <div className="font-bold text-rose-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{overdueLaborTotal.toLocaleString()} ر.س</div>
+            <div className="text-[10px] text-stone-400 mt-1">دوس لتفاصيل كل موقع</div>
+          </button>
+          <button onClick={() => setView("needs")} className="text-right bg-stone-50 border border-stone-200 rounded-lg p-3 hover:bg-stone-100">
+            <div className="text-xs text-stone-500 mb-1">مقاولو الباطن المتأخرين</div>
+            <div className="font-bold text-rose-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{overdueSubcontractorsTotal.toLocaleString()} ر.س</div>
+            <div className="text-[10px] text-stone-400 mt-1">دوس لتفاصيل كل موقع</div>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label className="text-xs text-stone-500">
+            مبلغ الضريبة المتأخر <span className="text-stone-400">(يدوي)</span>
+            {isAdmin ? (
+              <input
+                defaultValue={t.overdue_tax}
+                onBlur={(e) => setTreasuryField("overdue_tax", e.target.value.replace(/[^0-9.-]/g, ""))}
+                className="mt-1 w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-rose-700 font-bold"
+                style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+              />
+            ) : (
+              <div className="mt-1 font-bold text-rose-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(t.overdue_tax).toLocaleString()} ر.س</div>
+            )}
+          </label>
+          <div className="text-xs text-stone-500">
+            متعلقات أخرى متأخرة <span className="text-stone-400">(بيان ومبلغ يدوي)</span>
+            {isAdmin ? (
+              <div className="flex flex-col gap-1.5 mt-1">
+                <input
+                  defaultValue={t.other_pending_description}
+                  onBlur={(e) => setTreasuryTextField("other_pending_description", e.target.value)}
+                  placeholder="وصف المبلغ (اختياري)"
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <input
+                  defaultValue={t.other_pending_amount}
+                  onBlur={(e) => setTreasuryField("other_pending_amount", e.target.value.replace(/[^0-9.-]/g, ""))}
+                  placeholder="المبلغ"
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-rose-700 font-bold"
+                  style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+                />
+              </div>
+            ) : (
+              <div className="mt-1">
+                {t.other_pending_description && <div className="text-stone-600 mb-0.5">{t.other_pending_description}</div>}
+                <div className="font-bold text-rose-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(t.other_pending_amount).toLocaleString()} ر.س</div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
