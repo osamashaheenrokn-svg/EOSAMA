@@ -311,6 +311,10 @@ export function Dashboard({ profile, userEmail }) {
     setNewPhotoCaption("");
     reloadDetail(activeId);
   }
+  async function updatePhotoCaption(photoId, caption) {
+    await supabase.from("photos").update({ caption }).eq("id", photoId);
+    reloadDetail(activeId);
+  }
 
   // ---------------- generic entry helpers ----------------
   async function insertRow(table, row) {
@@ -1073,7 +1077,7 @@ export function Dashboard({ profile, userEmail }) {
                   <UpdatesTab key={activeId} active={active} isOwner={isOwner} setProjectField={setProjectField} newUpdate={newUpdate} setNewUpdate={setNewUpdate} addUpdate={addUpdate} updates={d.updates} progressColor={progressColor} projGrandTotal={projGrandTotal} projRevenue={projRevenue} revenuesCount={d.revenues.length} />
                 )}
                 {effectiveTab === "photos" && (
-                  <PhotosTab key={activeId} active={active} isOwner={isOwner} newPhotoCaption={newPhotoCaption} setNewPhotoCaption={setNewPhotoCaption} addPhoto={addPhoto} photos={d.photos} />
+                  <PhotosTab key={activeId} active={active} isOwner={isOwner} newPhotoCaption={newPhotoCaption} setNewPhotoCaption={setNewPhotoCaption} addPhoto={addPhoto} photos={d.photos} updatePhotoCaption={updatePhotoCaption} deletePhoto={(id) => deleteRow("photos", id)} />
                 )}
                 {effectiveTab === "timeline" && (
                   <TimelineTab key={activeId} active={active} isOwner={isOwner} phases={d.phases} newPhase={newPhase} setNewPhase={setNewPhase} addPhase={addPhase} updatePhaseField={updatePhaseField} deletePhase={deletePhase} />
