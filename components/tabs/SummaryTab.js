@@ -21,7 +21,7 @@ function ThumbPhoto({ photo }) {
   return <img src={url} alt={photo.caption} className="w-full h-40 object-cover" />;
 }
 
-export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, projLaborCost, projStaffMonthly, projSubClaims, projRevenue, needs }) {
+export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, projLaborCost, projStaffMonthly, projSubClaims, projRevenue, projProfit, projProfitPercent, needs }) {
   return (
     <div className="print-area">
       <PrintHeader title={`تقرير مختصر — ${active.name}`} />
@@ -70,6 +70,21 @@ export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, p
         <div className="bg-white border border-stone-200 rounded-lg p-4">
           <div className="text-xs text-stone-500 mb-1">نسبة إنجاز المشروع</div>
           <div className="text-xl font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{active.progress}٪</div>
+        </div>
+      </div>
+
+      <div className={`rounded-xl p-5 mb-5 flex items-center justify-between flex-wrap gap-6 border-4 ${projProfit >= 0 ? "bg-emerald-100 border-emerald-500" : "bg-rose-100 border-rose-500"}`}>
+        <div>
+          <div className="text-sm font-bold text-stone-600 mb-1">صافي الربح أو الخسارة (الإيرادات − التكاليف)</div>
+          <div className={`text-3xl font-extrabold ${projProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+            {projProfit >= 0 ? "+" : ""}{projProfit.toLocaleString()} ر.س
+          </div>
+        </div>
+        <div>
+          <div className="text-sm font-bold text-stone-600 mb-1">نسبة الربح / الخسارة</div>
+          <div className={`text-3xl font-extrabold ${projProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+            {projProfit >= 0 ? "+" : ""}{projProfitPercent.toLocaleString(undefined, { maximumFractionDigits: 1 })}٪
+          </div>
         </div>
       </div>
 
