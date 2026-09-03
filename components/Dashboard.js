@@ -108,6 +108,7 @@ export function Dashboard({ profile, userEmail }) {
   const [newSubcontractor, setNewSubcontractor] = useState({ name: "", scope: "" });
   const [newPhase, setNewPhase] = useState({ name: "", plannedStart: "", plannedEnd: "" });
   const [newDocument, setNewDocument] = useState({ category: "عقد العميل" });
+  const [documentError, setDocumentError] = useState("");
   const [newQaItem, setNewQaItem] = useState({ phase: "", item: "" });
 
   const [lang, setLang] = useState("ar");
@@ -475,11 +476,17 @@ export function Dashboard({ profile, userEmail }) {
 
   async function addDocument(category, file) {
     if (!file) return;
-    const path = await uploadAttachment(supabase, activeId, file);
-    await supabase.from("project_documents").insert({ project_id: activeId, category, name: file.name, attachment_path: path });
-    logAction(`رفع مستند (${category}) — ${active?.name}`);
-    setNewDocument({ category: "عقد العميل" });
-    reloadDetail(activeId);
+    setDocumentError("");
+    try {
+      const path = await uploadAttachment(supabase, activeId, file);
+      const { error } = await supabase.from("project_documents").insert({ project_id: activeId, category, name: file.name, attachment_path: path });
+      if (error) throw error;
+      logAction(`رفع مستند (${category}) — ${active?.name}`);
+      setNewDocument({ category: "عقد العميل" });
+      reloadDetail(activeId);
+    } catch (err) {
+      setDocumentError(err?.message || "تعذّر رفع المستند. حاول مرة أخرى.");
+    }
   }
   async function deleteDocument(docId) {
     await supabase.from("project_documents").delete().eq("id", docId);
@@ -1072,7 +1079,7 @@ export function Dashboard({ profile, userEmail }) {
                   <TimelineTab key={activeId} active={active} isOwner={isOwner} phases={d.phases} newPhase={newPhase} setNewPhase={setNewPhase} addPhase={addPhase} updatePhaseField={updatePhaseField} deletePhase={deletePhase} />
                 )}
                 {effectiveTab === "documents" && (
-                  <DocumentsTab key={activeId} isOwner={isOwner} documents={d.documents} newDocument={newDocument} setNewDocument={setNewDocument} addDocument={addDocument} deleteDocument={deleteDocument} />
+                  <DocumentsTab key={activeId} isOwner={isOwner} documents={d.documents} newDocument={newDocument} setNewDocument={setNewDocument} addDocument={addDocument} deleteDocument={deleteDocument} documentError={documentError} />
                 )}
                 {effectiveTab === "qa" && (
                   <QaTab key={activeId} active={active} isOwner={isOwner} qaChecklist={d.qaChecklist} newQaItem={newQaItem} setNewQaItem={setNewQaItem} addQaItem={addQaItem} toggleQaItem={toggleQaItem} deleteQaItem={deleteQaItem} />
