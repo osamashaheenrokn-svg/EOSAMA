@@ -18,7 +18,7 @@ function DocLink({ doc }) {
   return <a href={url} target="_blank" rel="noreferrer" className="text-amber-700 underline">{doc.name}</a>;
 }
 
-export function DocumentsTab({ isOwner, documents, newDocument, setNewDocument, addDocument, deleteDocument }) {
+export function DocumentsTab({ isOwner, documents, newDocument, setNewDocument, addDocument, deleteDocument, documentError }) {
   return (
     <div>
       <div className="text-xs text-stone-500 mb-4">مكان ثابت لملفات المشروع المهمة (غير المالية): عقد العميل، الرخص، المخططات الهندسية.</div>
@@ -34,6 +34,7 @@ export function DocumentsTab({ isOwner, documents, newDocument, setNewDocument, 
             <Upload className="w-4 h-4" /> رفع مستند
             <input id="doc-upload-input" type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => e.target.files[0] && addDocument(newDocument.category, e.target.files[0])} />
           </label>
+          {documentError && <div className="w-full text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-2">{documentError}</div>}
         </div>
       )}
       <div className="bg-white border border-stone-200 rounded-lg overflow-hidden">
