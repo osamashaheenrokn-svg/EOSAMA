@@ -7,7 +7,7 @@ import {
   Camera, Wallet, Lock, Plus, ChevronLeft,
   Users, Vault, BarChart3, AlertTriangle, Printer,
   Home, HardHat as SubIcon, FileSpreadsheet, UserCog, LogOut,
-  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus,
+  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus, Receipt,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -40,6 +40,7 @@ import { QaTab } from "./tabs/QaTab";
 import { CustodyTab } from "./tabs/CustodyTab";
 import { LaborTab } from "./tabs/LaborTab";
 import { TotalsTab } from "./tabs/TotalsTab";
+import { RevenuesTab } from "./tabs/RevenuesTab";
 import { SubcontractorsTab } from "./tabs/SubcontractorsTab";
 import { FinancialTab } from "./tabs/FinancialTab";
 import { SummaryTab } from "./tabs/SummaryTab";
@@ -54,6 +55,7 @@ const TABS = [
   { id: "timeline", label: "الجدول الزمني", icon: CalendarClock, ownerOnly: false },
   { id: "documents", label: "مستندات المشروع", icon: FolderOpen, ownerOnly: false },
   { id: "qa", label: "سجل تدقيق الجودة", icon: ClipboardCheck, ownerOnly: false },
+  { id: "revenues", label: "المستخلصات", icon: Receipt, ownerOnly: true, accountantOk: true },
   { id: "totals", label: "إجمالي مصروفات المشروع", icon: Vault, ownerOnly: true, accountantOk: true },
   { id: "financial", label: "التقرير المالي الشامل", icon: FileSpreadsheet, ownerOnly: true, accountantOk: true },
   { id: "summary", label: "تقرير مختصر", icon: Printer, ownerOnly: true },
@@ -1113,12 +1115,17 @@ export function Dashboard({ profile, userEmail }) {
                     deleteStaffMember={deleteStaffMember} markStaffPaid={markStaffPaid} unmarkStaffPaid={unmarkStaffPaid}
                   />
                 )}
-                {effectiveTab === "totals" && (canAccessLimited || canViewAllFinance) && (
-                  <TotalsTab key={activeId} active={active} isOwner={isOwner} canAccessLimited={canAccessLimited}
-                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffMonthly={projStaffMonthly} projSubClaims={projSubClaims}
+                {effectiveTab === "revenues" && (canAccessLimited || canViewAllFinance) && (
+                  <RevenuesTab key={activeId} active={active} isOwner={isOwner} canAccessLimited={canAccessLimited}
                     projRevenue={projRevenue} revenues={d.revenues} newRevenue={newRevenue} setNewRevenue={setNewRevenue} addRevenue={addRevenue}
-                    setProjectField={setProjectField} projProfit={projProfit} projProfitPercent={projProfitPercent}
                     attachFile={attachFile}
+                  />
+                )}
+                {effectiveTab === "totals" && (canAccessLimited || canViewAllFinance) && (
+                  <TotalsTab key={activeId} active={active} isOwner={isOwner}
+                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffMonthly={projStaffMonthly} projSubClaims={projSubClaims}
+                    projRevenue={projRevenue}
+                    setProjectField={setProjectField} projProfit={projProfit} projProfitPercent={projProfitPercent}
                   />
                 )}
                 {effectiveTab === "subcontractors" && (canAccessLimited || canViewAllFinance) && (
@@ -1138,7 +1145,7 @@ export function Dashboard({ profile, userEmail }) {
                 )}
                 {effectiveTab === "summary" && (isOwner || canViewAllFinance) && (
                   <SummaryTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffMonthly={projStaffMonthly}
-                    projSubClaims={projSubClaims} projRevenue={projRevenue}
+                    projSubClaims={projSubClaims} projRevenue={projRevenue} projProfit={projProfit} projProfitPercent={projProfitPercent}
                     needs={computeNeeds({ custodyReceived: projCustodyReceived, custodySpent: projCustodySpent, laborCost: projLaborCost, laborPaid: projLaborPaid, subClaims: projSubClaims, subPaid: projSubPaid, staffOverdue: projStaffOverdue })}
                   />
                 )}
