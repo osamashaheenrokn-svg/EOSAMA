@@ -329,6 +329,16 @@ export function Dashboard({ profile, userEmail }) {
       setSaveError("تعذّر الحفظ. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
     }
   }
+  async function updateRow(table, id, fields) {
+    try {
+      const { error } = await supabase.from(table).update(fields).eq("id", id);
+      if (error) throw error;
+      logAction(`تعديل بند في (${table}) — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر حفظ التعديل. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
   async function deleteRow(table, id) {
     try {
       const { error } = await supabase.from(table).delete().eq("id", id);
@@ -484,16 +494,6 @@ export function Dashboard({ profile, userEmail }) {
   }
   async function deleteSubClaim(id) { await deleteRow("subcontractor_claims", id); }
   async function deleteSubPayment(id) { await deleteRow("subcontractor_payments", id); }
-  async function attachSubClaim(id, file) {
-    const path = await uploadAttachment(supabase, activeId, file);
-    await supabase.from("subcontractor_claims").update({ attachment_path: path }).eq("id", id);
-    reloadDetail(activeId);
-  }
-  async function attachSubPayment(id, file) {
-    const path = await uploadAttachment(supabase, activeId, file);
-    await supabase.from("subcontractor_payments").update({ attachment_path: path }).eq("id", id);
-    reloadDetail(activeId);
-  }
 
   // ---------------- timeline / documents / QA ----------------
   async function addPhase() {
@@ -1138,7 +1138,7 @@ export function Dashboard({ profile, userEmail }) {
                     custodyReceived={d.custodyReceived} custodySpent={d.custodySpent}
                     newCustodyReceived={newCustodyReceived} setNewCustodyReceived={setNewCustodyReceived} addCustodyReceived={addCustodyReceived}
                     newCustodySpent={newCustodySpent} setNewCustodySpent={setNewCustodySpent} addCustodySpent={addCustodySpent}
-                    deleteRow={deleteRow} attachFile={attachFile}
+                    deleteRow={deleteRow} attachFile={attachFile} updateRow={updateRow}
                   />
                 )}
                 {effectiveTab === "labor" && (isOwner || canViewAllFinance) && (
@@ -1147,7 +1147,7 @@ export function Dashboard({ profile, userEmail }) {
                     laborCosts={d.laborCosts} laborPayments={d.laborPayments}
                     newLaborCost={newLaborCost} setNewLaborCost={setNewLaborCost} addLaborCost={addLaborCost}
                     newLaborPayment={newLaborPayment} setNewLaborPayment={setNewLaborPayment} addLaborPayment={addLaborPayment}
-                    deleteRow={deleteRow} attachFile={attachFile}
+                    deleteRow={deleteRow} attachFile={attachFile} updateRow={updateRow}
                   />
                 )}
                 {effectiveTab === "staff" && (isOwner || canViewAllFinance) && (
@@ -1176,7 +1176,7 @@ export function Dashboard({ profile, userEmail }) {
                     projSubClaims={projSubClaims} projSubPaid={projSubPaid}
                     subcontractors={d.subcontractors} newSubcontractor={newSubcontractor} setNewSubcontractor={setNewSubcontractor} addSubcontractor={addSubcontractor}
                     addSubClaim={addSubClaim} addSubPayment={addSubPayment} deleteSubClaim={deleteSubClaim} deleteSubPayment={deleteSubPayment}
-                    deleteSubcontractor={deleteSubcontractor} attachSubClaim={attachSubClaim} attachSubPayment={attachSubPayment} rateSubcontractor={rateSubcontractor}
+                    deleteSubcontractor={deleteSubcontractor} attachFile={attachFile} updateRow={updateRow} rateSubcontractor={rateSubcontractor}
                   />
                 )}
                 {effectiveTab === "financial" && (canAccessLimited || canViewAllFinance) && (
