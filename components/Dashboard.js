@@ -436,18 +436,30 @@ export function Dashboard({ profile, userEmail }) {
     logAction(`حذف عضو من الطاقم الفني — ${active?.name}`);
     reloadDetail(activeId);
   }
-  async function markStaffPaid(staffId) {
+  async function markStaffPaid(staffId, month) {
     const member = d.staff.find((s) => s.id === staffId);
     if (!member) return;
-    const month = currentMonthKey();
-    await supabase.from("staff_payments").insert({ staff_id: staffId, month, amount: member.monthly_salary, paid_date: new Date().toISOString().slice(0, 10) });
-    logAction(`تسجيل صرف راتب "${member.name}" لشهر ${month} بمبلغ ${Number(member.monthly_salary).toLocaleString()} ر.س — ${active?.name}`);
-    reloadDetail(activeId);
+    const targetMonth = month || currentMonthKey();
+    try {
+      const { error } = await supabase.from("staff_payments").insert({ staff_id: staffId, month: targetMonth, amount: member.monthly_salary, paid_date: new Date().toISOString().slice(0, 10) });
+      if (error) throw error;
+      logAction(`تسجيل صرف راتب "${member.name}" لشهر ${targetMonth} بمبلغ ${Number(member.monthly_salary).toLocaleString()} ر.س — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر تسجيل صرف الراتب. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
   }
-  async function unmarkStaffPaid(staffId) {
-    const month = currentMonthKey();
-    await supabase.from("staff_payments").delete().eq("staff_id", staffId).eq("month", month);
-    reloadDetail(activeId);
+  async function unmarkStaffPaid(staffId, month) {
+    const member = d.staff.find((s) => s.id === staffId);
+    const targetMonth = month || currentMonthKey();
+    try {
+      const { error } = await supabase.from("staff_payments").delete().eq("staff_id", staffId).eq("month", targetMonth);
+      if (error) throw error;
+      logAction(`تراجع عن تسجيل صرف راتب "${member?.name}" لشهر ${targetMonth} — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر التراجع عن تسجيل الصرف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
   }
   async function addRevenue() {
     if (!newRevenue.number || !newRevenue.amount) return;
