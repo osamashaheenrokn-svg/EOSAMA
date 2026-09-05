@@ -445,6 +445,16 @@ export function Dashboard({ profile, userEmail }) {
     logAction(`إضافة مستخلص رقم ${newRevenue.number} بقيمة ${Number(newRevenue.amount).toLocaleString()} ر.س — ${active?.name}`);
     setNewRevenue({ number: "", amount: "", notes: "" });
   }
+  async function updateRevenue(id, fields) {
+    try {
+      const { error } = await supabase.from("revenues").update(fields).eq("id", id);
+      if (error) throw error;
+      logAction(`تعديل مستخلص — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر حفظ التعديل. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
 
   // ---------------- subcontractors ----------------
   async function addSubcontractor() {
@@ -1148,8 +1158,9 @@ export function Dashboard({ profile, userEmail }) {
                   />
                 )}
                 {effectiveTab === "revenues" && (canAccessLimited || canViewAllFinance) && (
-                  <RevenuesTab key={activeId} active={active} isOwner={isOwner} canAccessLimited={canAccessLimited}
+                  <RevenuesTab key={activeId} active={active} isOwner={isOwner} canAccessLimited={canAccessLimited} canEditDelete={canEditDelete}
                     projRevenue={projRevenue} revenues={d.revenues} newRevenue={newRevenue} setNewRevenue={setNewRevenue} addRevenue={addRevenue}
+                    updateRevenue={updateRevenue} deleteRevenue={(id) => deleteRow("revenues", id)}
                     attachFile={attachFile}
                   />
                 )}
