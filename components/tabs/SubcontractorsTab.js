@@ -8,7 +8,7 @@ import { SubcontractorCard } from "../SubcontractorCard";
 export function SubcontractorsTab({
   canAccessLimited, canEditDelete, projSubClaims, projSubPaid, subcontractors,
   newSubcontractor, setNewSubcontractor, addSubcontractor,
-  addSubClaim, addSubPayment, deleteSubClaim, deleteSubPayment, deleteSubcontractor, attachSubClaim, attachSubPayment, rateSubcontractor,
+  addSubClaim, addSubPayment, deleteSubClaim, deleteSubPayment, deleteSubcontractor, attachFile, updateRow, rateSubcontractor,
 }) {
   return (
     <div className="print-area">
@@ -52,8 +52,10 @@ export function SubcontractorsTab({
           onDeleteClaim={(id) => deleteSubClaim(id)}
           onDeletePayment={(id) => deleteSubPayment(id)}
           onDeleteSub={() => deleteSubcontractor(sub.id)}
-          onAttachClaim={(id, file) => attachSubClaim(id, file)}
-          onAttachPayment={(id, file) => attachSubPayment(id, file)}
+          onAttachClaim={(id, file) => attachFile("subcontractor_claims", id, file)}
+          onAttachPayment={(id, file) => attachFile("subcontractor_payments", id, file)}
+          onUpdateClaim={(id, fields) => updateRow("subcontractor_claims", id, fields)}
+          onUpdatePayment={(id, fields) => updateRow("subcontractor_payments", id, fields)}
           onRate={(rating) => rateSubcontractor(sub.id, rating)}
         />
       ))}
