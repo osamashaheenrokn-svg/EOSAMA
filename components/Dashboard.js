@@ -7,7 +7,7 @@ import {
   Camera, Wallet, Lock, Plus, ChevronLeft,
   Users, Vault, BarChart3, AlertTriangle, Printer,
   Home, HardHat as SubIcon, FileSpreadsheet, UserCog, LogOut,
-  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus, Receipt,
+  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus, Receipt, X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -111,6 +111,7 @@ export function Dashboard({ profile, userEmail }) {
   const [newPhase, setNewPhase] = useState({ name: "", plannedStart: "", plannedEnd: "" });
   const [newDocument, setNewDocument] = useState({ category: "عقد العميل" });
   const [documentError, setDocumentError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [newQaItem, setNewQaItem] = useState({ phase: "", item: "" });
 
   const [lang, setLang] = useState("ar");
@@ -320,18 +321,33 @@ export function Dashboard({ profile, userEmail }) {
 
   // ---------------- generic entry helpers ----------------
   async function insertRow(table, row) {
-    await supabase.from(table).insert(row);
-    reloadDetail(activeId);
+    try {
+      const { error } = await supabase.from(table).insert(row);
+      if (error) throw error;
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر الحفظ. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
   }
   async function deleteRow(table, id) {
-    await supabase.from(table).delete().eq("id", id);
-    logAction(`حذف بند من (${table}) — ${active?.name}`);
-    reloadDetail(activeId);
+    try {
+      const { error } = await supabase.from(table).delete().eq("id", id);
+      if (error) throw error;
+      logAction(`حذف بند من (${table}) — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر الحذف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
   }
   async function attachFile(table, id, file) {
-    const path = await uploadAttachment(supabase, activeId, file);
-    await supabase.from(table).update({ attachment_path: path }).eq("id", id);
-    reloadDetail(activeId);
+    try {
+      const path = await uploadAttachment(supabase, activeId, file);
+      const { error } = await supabase.from(table).update({ attachment_path: path }).eq("id", id);
+      if (error) throw error;
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر رفع المرفق. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
   }
 
   async function addCustodyReceived() {
@@ -346,11 +362,17 @@ export function Dashboard({ profile, userEmail }) {
     const entry = { file_number: Number(newCustodySpent.fileNumber), week: Number(newCustodySpent.week), from_date: newCustodySpent.from || null, to_date: newCustodySpent.to || null, amount };
     const threshold = Number(companySettings?.approval_threshold ?? Infinity);
     if (!isAdmin && amount > threshold) {
-      await supabase.from("pending_approvals").insert({
-        project_id: activeId, type: "custody_spent", entry, amount,
-        requested_by: profile.id, requested_by_name: profile.name,
-      });
-      logAction(`طلب موافقة على صرف عهدة بمبلغ ${amount.toLocaleString()} ر.س (فوق حد الموافقة) — ${active?.name}`);
+      try {
+        const { error } = await supabase.from("pending_approvals").insert({
+          project_id: activeId, type: "custody_spent", entry, amount,
+          requested_by: profile.id, requested_by_name: profile.name,
+        });
+        if (error) throw error;
+        logAction(`طلب موافقة على صرف عهدة بمبلغ ${amount.toLocaleString()} ر.س (فوق حد الموافقة) — ${active?.name}`);
+      } catch {
+        setSaveError("تعذّر إرسال طلب الموافقة. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+        return;
+      }
     } else {
       await insertRow("custody_spent", { project_id: activeId, ...entry });
       logAction(`تسجيل مصروف عهدة (ملف ${newCustodySpent.fileNumber}) بمبلغ ${amount.toLocaleString()} ر.س — ${active?.name}`);
@@ -880,6 +902,16 @@ export function Dashboard({ profile, userEmail }) {
           .print-photos-grid img { break-inside: avoid; }
         }
       `}</style>
+
+      {saveError && (
+        <div className="no-print fixed top-3 inset-x-3 z-50 flex justify-center">
+          <div className="bg-rose-600 text-white rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 max-w-lg">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span className="text-sm font-bold flex-1">{saveError}</span>
+            <button onClick={() => setSaveError("")} className="shrink-0"><X className="w-4 h-4" /></button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-slate-900 text-stone-100 px-6 py-4 flex items-center justify-between flex-wrap gap-3">
         <button onClick={() => setView("home")} className="flex items-center gap-4 text-right">
