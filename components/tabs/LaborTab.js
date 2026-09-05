@@ -1,21 +1,125 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { Plus, Pencil, Check, X } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { AttachmentCell } from "../AttachmentCell";
 import { RowActions } from "../RowActions";
 
+function LaborCostRow({ l, canEditDelete, updateRow, deleteRow, attachFile }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ week: l.week || "", from: l.from_date || "", to: l.to_date || "", count: l.count || "", cost: l.cost, notes: l.notes || "" });
+
+  function save() {
+    if (!draft.cost) return;
+    updateRow("labor_costs", l.id, {
+      week: draft.week ? Number(draft.week) : null, from_date: draft.from || null, to_date: draft.to || null,
+      count: draft.count ? Number(draft.count) : null, cost: Number(draft.cost), notes: draft.notes.trim(),
+    });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <tr className="border-t border-stone-100 bg-amber-50">
+        <td className="p-2"><input value={draft.week} onChange={(e) => setDraft((f) => ({ ...f, week: e.target.value.replace(/[^0-9]/g, "") }))} className="w-16 border border-stone-300 rounded px-2 py-1 text-sm" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} /></td>
+        <td className="p-2"><input type="date" value={draft.from} onChange={(e) => setDraft((f) => ({ ...f, from: e.target.value }))} className="border border-stone-300 rounded px-2 py-1 text-sm" /></td>
+        <td className="p-2"><input type="date" value={draft.to} onChange={(e) => setDraft((f) => ({ ...f, to: e.target.value }))} className="border border-stone-300 rounded px-2 py-1 text-sm" /></td>
+        <td className="p-2"><input value={draft.count} onChange={(e) => setDraft((f) => ({ ...f, count: e.target.value.replace(/[^0-9]/g, "") }))} className="w-16 border border-stone-300 rounded px-2 py-1 text-sm" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} /></td>
+        <td className="p-2"><input value={draft.cost} onChange={(e) => setDraft((f) => ({ ...f, cost: e.target.value.replace(/[^0-9]/g, "") }))} className="w-28 border border-stone-300 rounded px-2 py-1 text-sm" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} /></td>
+        <td className="p-2"><input value={draft.notes} onChange={(e) => setDraft((f) => ({ ...f, notes: e.target.value }))} className="w-full border border-stone-300 rounded px-2 py-1 text-sm" /></td>
+        <td className="p-2"></td>
+        <td className="p-2">
+          <div className="flex items-center gap-1">
+            <button onClick={save} title="حفظ" className="text-emerald-700 border border-emerald-200 rounded px-1.5 py-1"><Check className="w-3.5 h-3.5" /></button>
+            <button onClick={() => setEditing(false)} title="إلغاء" className="text-stone-500 border border-stone-300 rounded px-1.5 py-1"><X className="w-3.5 h-3.5" /></button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr className="border-t border-stone-100">
+      <td className="p-2 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.week}</td>
+      <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.from_date}</td>
+      <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.to_date}</td>
+      <td className="p-2" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.count}</td>
+      <td className="p-2 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(l.cost).toLocaleString()}</td>
+      <td className="p-2 text-stone-600">{l.notes}</td>
+      <td className="p-2"><AttachmentCell path={l.attachment_path} canEdit={canEditDelete} inputId={`lc-${l.id}`} onUpload={(file) => attachFile("labor_costs", l.id, file)} /></td>
+      <td className="p-2">
+        <div className="flex items-center gap-1">
+          {canEditDelete && (
+            <button onClick={() => setEditing(true)} title="تعديل" className="text-slate-500 hover:text-slate-900 border border-stone-300 rounded px-1.5 py-1">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <RowActions canManage={canEditDelete} onDelete={() => deleteRow("labor_costs", l.id)} />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function LaborPaymentRow({ l, canEditDelete, updateRow, deleteRow, attachFile }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ paymentNumber: l.payment_number, date: l.date || "", amount: l.amount });
+
+  function save() {
+    if (!draft.paymentNumber || !draft.amount) return;
+    updateRow("labor_payments", l.id, { payment_number: Number(draft.paymentNumber), date: draft.date || null, amount: Number(draft.amount) });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <tr className="border-t border-stone-100 bg-amber-50">
+        <td className="p-2"><input value={draft.paymentNumber} onChange={(e) => setDraft((f) => ({ ...f, paymentNumber: e.target.value.replace(/[^0-9]/g, "") }))} className="w-20 border border-stone-300 rounded px-2 py-1 text-sm" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} /></td>
+        <td className="p-2"><input type="date" value={draft.date} onChange={(e) => setDraft((f) => ({ ...f, date: e.target.value }))} className="border border-stone-300 rounded px-2 py-1 text-sm" /></td>
+        <td className="p-2"><input value={draft.amount} onChange={(e) => setDraft((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))} className="w-28 border border-stone-300 rounded px-2 py-1 text-sm" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} /></td>
+        <td className="p-2"></td>
+        <td className="p-2">
+          <div className="flex items-center gap-1">
+            <button onClick={save} title="حفظ" className="text-emerald-700 border border-emerald-200 rounded px-1.5 py-1"><Check className="w-3.5 h-3.5" /></button>
+            <button onClick={() => setEditing(false)} title="إلغاء" className="text-stone-500 border border-stone-300 rounded px-1.5 py-1"><X className="w-3.5 h-3.5" /></button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr className="border-t border-stone-100">
+      <td className="p-2 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>دفعة {l.payment_number}</td>
+      <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.date}</td>
+      <td className="p-2 font-bold text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(l.amount).toLocaleString()}</td>
+      <td className="p-2"><AttachmentCell path={l.attachment_path} canEdit={canEditDelete} inputId={`lp-${l.id}`} onUpload={(file) => attachFile("labor_payments", l.id, file)} /></td>
+      <td className="p-2">
+        <div className="flex items-center gap-1">
+          {canEditDelete && (
+            <button onClick={() => setEditing(true)} title="تعديل" className="text-slate-500 hover:text-slate-900 border border-stone-300 rounded px-1.5 py-1">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <RowActions canManage={canEditDelete} onDelete={() => deleteRow("labor_payments", l.id)} />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export function LaborTab({
   isOwner, canEditDelete, projLaborCost, projLaborPaid, laborCosts, laborPayments,
   newLaborCost, setNewLaborCost, addLaborCost, newLaborPayment, setNewLaborPayment, addLaborPayment,
-  deleteRow, attachFile,
+  deleteRow, attachFile, updateRow,
 }) {
   return (
     <div className="print-area">
       <PrintHeader title="تقرير العمالة" />
       <PrintButton />
-      <div className="text-xs text-stone-500 mb-3">العمالة مقسّمة لخانتين: التكاليف لوحدها، والمسدد لوحده.</div>
+      <div className="text-xs text-stone-500 mb-3">العمالة مقسّمة لخانتين: التكاليف لوحدها، والمسدد لوحده. التعديل والحذف ورفع المرفقات متاح للمدير، أو لمن يمنحه المدير الصلاحية صراحةً.</div>
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-white border border-stone-200 rounded-lg p-3">
           <div className="text-xs text-stone-500 mb-1">إجمالي التكاليف</div>
@@ -51,16 +155,7 @@ export function LaborTab({
           <tbody>
             {laborCosts.length === 0 && (<tr><td colSpan={8} className="text-center text-stone-400 p-4">لا توجد تكاليف مسجّلة بعد.</td></tr>)}
             {laborCosts.map((l) => (
-              <tr key={l.id} className="border-t border-stone-100">
-                <td className="p-2 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.week}</td>
-                <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.from_date}</td>
-                <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.to_date}</td>
-                <td className="p-2" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.count}</td>
-                <td className="p-2 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(l.cost).toLocaleString()}</td>
-                <td className="p-2 text-stone-600">{l.notes}</td>
-                <td className="p-2"><AttachmentCell path={l.attachment_path} canEdit={isOwner} inputId={`lc-${l.id}`} onUpload={(file) => attachFile("labor_costs", l.id, file)} /></td>
-                <td className="p-2"><RowActions canManage={canEditDelete} onDelete={() => deleteRow("labor_costs", l.id)} /></td>
-              </tr>
+              <LaborCostRow key={l.id} l={l} canEditDelete={canEditDelete} updateRow={updateRow} deleteRow={deleteRow} attachFile={attachFile} />
             ))}
             <tr className="border-t border-stone-200 bg-stone-50 font-bold">
               <td className="p-2" colSpan={4}>الإجمالي</td>
@@ -88,13 +183,7 @@ export function LaborTab({
           <tbody>
             {laborPayments.length === 0 && (<tr><td colSpan={5} className="text-center text-stone-400 p-4">لا يوجد مسدد بعد.</td></tr>)}
             {laborPayments.map((l) => (
-              <tr key={l.id} className="border-t border-stone-100">
-                <td className="p-2 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>دفعة {l.payment_number}</td>
-                <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{l.date}</td>
-                <td className="p-2 font-bold text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(l.amount).toLocaleString()}</td>
-                <td className="p-2"><AttachmentCell path={l.attachment_path} canEdit={isOwner} inputId={`lp-${l.id}`} onUpload={(file) => attachFile("labor_payments", l.id, file)} /></td>
-                <td className="p-2"><RowActions canManage={canEditDelete} onDelete={() => deleteRow("labor_payments", l.id)} /></td>
-              </tr>
+              <LaborPaymentRow key={l.id} l={l} canEditDelete={canEditDelete} updateRow={updateRow} deleteRow={deleteRow} attachFile={attachFile} />
             ))}
             <tr className="border-t border-stone-200 bg-stone-50 font-bold">
               <td className="p-2" colSpan={2}>الإجمالي</td>
