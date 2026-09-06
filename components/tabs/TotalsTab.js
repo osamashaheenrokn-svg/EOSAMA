@@ -4,7 +4,7 @@ import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 
 export function TotalsTab({
-  active, isOwner, projGrandTotal, projCustodySpent, projLaborCost, projStaffMonthly, projSubClaims,
+  active, isOwner, projGrandTotal, projCustodySpent, projLaborCost, projStaffPaid, projSubClaims,
   projRevenue, setProjectField, projProfit, projProfitPercent,
 }) {
   return (
@@ -28,8 +28,8 @@ export function TotalsTab({
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projLaborCost.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
-          <div className="text-xs text-stone-500 mb-1">إجمالي رواتب الطاقم الفني <span className="text-stone-400 font-normal">(تفاصيل في تبويب &quot;الطاقم الفني&quot;)</span></div>
-          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffMonthly.toLocaleString()} ر.س</div>
+          <div className="text-xs text-stone-500 mb-1">إجمالي رواتب الطاقم الفني المصروفة فعليًا <span className="text-stone-400 font-normal">(تفاصيل في تبويب &quot;الطاقم الفني&quot;)</span></div>
+          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffPaid.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
           <div className="text-xs text-stone-500 mb-1">إجمالي مقاولي الباطن والتوريدات</div>
