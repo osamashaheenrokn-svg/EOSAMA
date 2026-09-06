@@ -4,15 +4,34 @@ import { useState } from "react";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
-import { staffStatus, isStaffPaidThisMonth, monthsSinceStart, paymentForMonth, formatMonthKey, currentMonthKey } from "@/lib/db";
+import { staffStatus, monthsSinceStart, paymentForMonth, formatMonthKey, proratedSalaryForMonth } from "@/lib/db";
+
+function PaymentEntryForm({ defaultAmount, onConfirm, onCancel }) {
+  const [amount, setAmount] = useState(String(defaultAmount));
+  const [overtime, setOvertime] = useState("");
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="text-xs text-stone-500">
+        الراتب المستحق
+        <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))} className="block w-24 border border-stone-300 rounded px-2 py-1 text-xs" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
+      </label>
+      <label className="text-xs text-stone-500">
+        إضافي (اختياري)
+        <input value={overtime} onChange={(e) => setOvertime(e.target.value.replace(/[^0-9]/g, ""))} placeholder="0" className="block w-24 border border-stone-300 rounded px-2 py-1 text-xs" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
+      </label>
+      <button onClick={() => onConfirm(Number(amount) || 0, Number(overtime) || 0)} className="text-xs bg-emerald-600 text-white rounded px-3 py-1.5 font-bold self-end">تأكيد</button>
+      <button onClick={onCancel} className="text-xs text-stone-500 border border-stone-300 rounded px-3 py-1.5 self-end">إلغاء</button>
+    </div>
+  );
+}
 
 function StaffMemberCard({ s, isOwner, markStaffPaid, unmarkStaffPaid, deleteStaffMember }) {
   const [showHistory, setShowHistory] = useState(false);
+  const [payingMonth, setPayingMonth] = useState(null);
   const status = staffStatus(s);
-  const paidThisMonth = isStaffPaidThisMonth(s);
   const months = monthsSinceStart(s.start_date);
-  const thisMonth = currentMonthKey();
-  const unpaidPastMonths = months.filter((m) => m !== thisMonth && !paymentForMonth(s, m));
+  const unpaidMonths = months.filter((m) => !paymentForMonth(s, m));
 
   return (
     <div className="bg-white border border-stone-200 rounded-lg p-4">
@@ -26,14 +45,9 @@ function StaffMemberCard({ s, isOwner, markStaffPaid, unmarkStaffPaid, deleteSta
 
       {isOwner && (
         <div className="no-print flex flex-wrap items-center gap-2">
-          {paidThisMonth ? (
-            <button onClick={() => unmarkStaffPaid(s.id)} className="text-xs border border-stone-300 rounded-lg px-3 py-1.5">تراجع عن تسجيل الصرف</button>
-          ) : (
-            <button onClick={() => markStaffPaid(s.id)} className="text-xs bg-emerald-600 text-white rounded-lg px-3 py-1.5 font-bold">تسجيل صرف راتب هذا الشهر</button>
-          )}
           <button onClick={() => deleteStaffMember(s.id)} className="text-xs text-rose-600 border border-rose-200 rounded-lg px-3 py-1.5">حذف من الطاقم</button>
           <button onClick={() => setShowHistory((v) => !v)} className="text-xs text-slate-600 border border-stone-300 rounded-lg px-3 py-1.5 flex items-center gap-1">
-            سجل الرواتب الشهرية {unpaidPastMonths.length > 0 && <span className="bg-rose-100 text-rose-700 rounded-full px-1.5">{unpaidPastMonths.length}</span>}
+            سجل الرواتب الشهرية {unpaidMonths.length > 0 && <span className="bg-rose-100 text-rose-700 rounded-full px-1.5">{unpaidMonths.length}</span>}
             {showHistory ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
@@ -41,7 +55,7 @@ function StaffMemberCard({ s, isOwner, markStaffPaid, unmarkStaffPaid, deleteSta
 
       {showHistory && (
         <div className="mt-3 border-t border-stone-100 pt-3">
-          <div className="text-xs text-stone-500 mb-2">كل الشهور من تاريخ بداية الدوام حتى الآن — سجّل رواتب الشهور السابقة اللي اتصرفت قبل استخدام البرنامج.</div>
+          <div className="text-xs text-stone-500 mb-2">كل الشهور من تاريخ بداية الدوام حتى الآن — شهر البداية محسوب تلقائيًا بعدد الأيام الفعلية لو بدأ في نص الشهر. سجّل هنا رواتب الشهور السابقة اللي اتصرفت قبل استخدام البرنامج، ولو حبيت تضيف إضافي (بدل عن عمل إضافي) لأي شهر حطّه في الخانة التانية.</div>
           <div className="border border-stone-200 rounded-lg overflow-hidden">
             <table className="w-full text-xs">
               <thead className="bg-stone-50 text-stone-500">
@@ -50,23 +64,32 @@ function StaffMemberCard({ s, isOwner, markStaffPaid, unmarkStaffPaid, deleteSta
               <tbody>
                 {months.map((m) => {
                   const payment = paymentForMonth(s, m);
+                  const total = payment ? Number(payment.amount) + Number(payment.overtime || 0) : 0;
                   return (
                     <tr key={m} className="border-t border-stone-100">
-                      <td className="p-2 font-bold">{formatMonthKey(m)}</td>
-                      <td className="p-2">
+                      <td className="p-2 font-bold align-top">{formatMonthKey(m)}</td>
+                      <td className="p-2 align-top">
                         {payment ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">مدفوع ({Number(payment.amount).toLocaleString()} ر.س)</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            مدفوع ({total.toLocaleString()} ر.س{Number(payment.overtime || 0) > 0 ? ` — منها ${Number(payment.overtime).toLocaleString()} إضافي` : ""})
+                          </span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">غير مسجّل</span>
                         )}
                       </td>
-                      <td className="p-2 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{payment?.paid_date || "—"}</td>
+                      <td className="p-2 text-stone-500 align-top" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{payment?.paid_date || "—"}</td>
                       {isOwner && (
-                        <td className="p-2">
+                        <td className="p-2 align-top">
                           {payment ? (
                             <button onClick={() => unmarkStaffPaid(s.id, m)} className="text-xs border border-stone-300 rounded px-2 py-1">تراجع</button>
+                          ) : payingMonth === m ? (
+                            <PaymentEntryForm
+                              defaultAmount={proratedSalaryForMonth(s, m)}
+                              onConfirm={(amount, overtime) => { markStaffPaid(s.id, m, amount, overtime); setPayingMonth(null); }}
+                              onCancel={() => setPayingMonth(null)}
+                            />
                           ) : (
-                            <button onClick={() => markStaffPaid(s.id, m)} className="text-xs bg-emerald-600 text-white rounded px-2 py-1 font-bold">تسجيل السداد</button>
+                            <button onClick={() => setPayingMonth(m)} className="text-xs bg-emerald-600 text-white rounded px-2 py-1 font-bold">تسجيل السداد</button>
                           )}
                         </td>
                       )}
@@ -119,7 +142,7 @@ export function StaffTab({
           <button onClick={addStaffMember} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 self-end"><Plus className="w-4 h-4" /> تسجيل في الطاقم</button>
         </div>
       )}
-      <div className="text-xs text-stone-500 mb-3 no-print">لو تاريخ بداية الدوام أقدم من اليوم، افتح &quot;سجل الرواتب الشهرية&quot; لكل عضو لتسجيل رواتب الشهور السابقة اللي اتصرفت قبل استخدام البرنامج.</div>
+      <div className="text-xs text-stone-500 mb-3 no-print">افتح &quot;سجل الرواتب الشهرية&quot; لكل عضو لتسجيل صرف أي شهر (شامل الشهر الحالي)، مع إمكانية إضافة مبلغ إضافي لأي شهر.</div>
 
       <div className="space-y-3">
         {staff.length === 0 && <div className="text-stone-400 text-sm">لا يوجد طاقم فني مسجّل بعد لهذا المشروع.</div>}
