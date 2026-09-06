@@ -21,7 +21,7 @@ function ThumbPhoto({ photo }) {
   return <img src={url} alt={photo.caption} className="w-full h-40 object-cover" />;
 }
 
-export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, projLaborCost, projStaffMonthly, projSubClaims, projRevenue, projProfit, projProfitPercent, needs }) {
+export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, projLaborCost, projStaffPaid, projSubClaims, projRevenue, projProfit, projProfitPercent, needs }) {
   return (
     <div className="print-area">
       <PrintHeader title={`تقرير مختصر — ${active.name}`} />
@@ -46,8 +46,8 @@ export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, p
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-4">
-          <div className="text-xs text-stone-500 mb-1">رواتب الطاقم الفني</div>
-          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffMonthly.toLocaleString()} ر.س</div>
+          <div className="text-xs text-stone-500 mb-1">رواتب الطاقم الفني المصروفة فعليًا</div>
+          <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffPaid.toLocaleString()} ر.س</div>
         </div>
       </div>
 
