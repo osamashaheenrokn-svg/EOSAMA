@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   fetchProfiles, fetchProjects, fetchAllTeams, fetchTreasury, fetchProjectDetail, fetchCompanyFinancials, sum,
   fetchCompanySettings, fetchPendingApprovals, fetchCompanyAssets, fetchCompanyTools, fetchLeads, fetchAuditLog, logAction as logActionDb, daysUntil,
-  staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey,
+  staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey, proratedSalaryForMonth,
 } from "@/lib/db";
 import { uploadAttachment } from "@/lib/attachments";
 import { HomeView } from "./views/HomeView";
@@ -265,7 +265,7 @@ export function Dashboard({ profile, userEmail }) {
   const projStaffOverdue = staffOverdueTotal(d.staff);
   const projSubClaims = d.subcontractors.reduce((a, s) => a + sum(s.subcontractor_claims, "amount"), 0);
   const projSubPaid = d.subcontractors.reduce((a, s) => a + sum(s.subcontractor_payments, "amount"), 0);
-  const projGrandTotal = projCustodySpent + projLaborCost + projStaffMonthly + projSubClaims;
+  const projGrandTotal = projCustodySpent + projLaborCost + projStaffPaid + projSubClaims;
   const projRevenue = sum(d.revenues, "amount");
   const projProfit = projRevenue - projGrandTotal;
   const projProfitPercent = projRevenue !== 0 ? (projProfit / projRevenue) * 100 : 0;
@@ -436,14 +436,16 @@ export function Dashboard({ profile, userEmail }) {
     logAction(`حذف عضو من الطاقم الفني — ${active?.name}`);
     reloadDetail(activeId);
   }
-  async function markStaffPaid(staffId, month) {
+  async function markStaffPaid(staffId, month, amount, overtime) {
     const member = d.staff.find((s) => s.id === staffId);
     if (!member) return;
     const targetMonth = month || currentMonthKey();
+    const baseAmount = amount != null ? Number(amount) : proratedSalaryForMonth(member, targetMonth);
+    const extra = Number(overtime || 0);
     try {
-      const { error } = await supabase.from("staff_payments").insert({ staff_id: staffId, month: targetMonth, amount: member.monthly_salary, paid_date: new Date().toISOString().slice(0, 10) });
+      const { error } = await supabase.from("staff_payments").insert({ staff_id: staffId, month: targetMonth, amount: baseAmount, overtime: extra, paid_date: new Date().toISOString().slice(0, 10) });
       if (error) throw error;
-      logAction(`تسجيل صرف راتب "${member.name}" لشهر ${targetMonth} بمبلغ ${Number(member.monthly_salary).toLocaleString()} ر.س — ${active?.name}`);
+      logAction(`تسجيل صرف راتب "${member.name}" لشهر ${targetMonth} بمبلغ ${Number(baseAmount + extra).toLocaleString()} ر.س${extra ? ` (منها ${extra.toLocaleString()} إضافي)` : ""} — ${active?.name}`);
       reloadDetail(activeId);
     } catch {
       setSaveError("تعذّر تسجيل صرف الراتب. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
@@ -1178,7 +1180,7 @@ export function Dashboard({ profile, userEmail }) {
                 )}
                 {effectiveTab === "totals" && (canAccessLimited || canViewAllFinance) && (
                   <TotalsTab key={activeId} active={active} isOwner={isOwner}
-                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffMonthly={projStaffMonthly} projSubClaims={projSubClaims}
+                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffPaid={projStaffPaid} projSubClaims={projSubClaims}
                     projRevenue={projRevenue}
                     setProjectField={setProjectField} projProfit={projProfit} projProfitPercent={projProfitPercent}
                   />
@@ -1199,7 +1201,7 @@ export function Dashboard({ profile, userEmail }) {
                   />
                 )}
                 {effectiveTab === "summary" && (isOwner || canViewAllFinance) && (
-                  <SummaryTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffMonthly={projStaffMonthly}
+                  <SummaryTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffPaid={projStaffPaid}
                     projSubClaims={projSubClaims} projRevenue={projRevenue} projProfit={projProfit} projProfitPercent={projProfitPercent}
                     needs={computeNeeds({ custodyReceived: projCustodyReceived, custodySpent: projCustodySpent, laborCost: projLaborCost, laborPaid: projLaborPaid, subClaims: projSubClaims, subPaid: projSubPaid, staffOverdue: projStaffOverdue })}
                   />
