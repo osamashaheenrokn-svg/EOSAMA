@@ -3,15 +3,19 @@
 import { useState } from "react";
 import { Plus, Trash2, Star, Pencil, Check, X } from "lucide-react";
 import { AttachmentCell } from "./AttachmentCell";
-import { sum } from "@/lib/db";
+import { sum, claimVatAmount } from "@/lib/db";
 
 function ClaimRow({ c, canManage, onUpdateClaim, onDeleteClaim, onAttachClaim }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ number: c.number, date: c.date || "", amount: c.amount });
+  const [draft, setDraft] = useState({ number: c.number, date: c.date || "", amount: c.amount, includesVat: !!c.includes_vat, vatRate: c.vat_rate || "" });
+  const vat = claimVatAmount(c);
 
   function save() {
     if (!draft.number || !draft.amount) return;
-    onUpdateClaim(c.id, { number: Number(draft.number), date: draft.date || null, amount: Number(draft.amount) });
+    onUpdateClaim(c.id, {
+      number: Number(draft.number), date: draft.date || null, amount: Number(draft.amount),
+      includes_vat: !!draft.includesVat, vat_rate: draft.includesVat ? Number(draft.vatRate || 0) : 0,
+    });
     setEditing(false);
   }
 
@@ -21,6 +25,15 @@ function ClaimRow({ c, canManage, onUpdateClaim, onDeleteClaim, onAttachClaim })
         <td className="p-1.5"><input value={draft.number} onChange={(e) => setDraft((f) => ({ ...f, number: e.target.value.replace(/[^0-9]/g, "") }))} className="w-16 border border-stone-300 rounded px-1.5 py-1 text-xs" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} /></td>
         <td className="p-1.5"><input type="date" value={draft.date} onChange={(e) => setDraft((f) => ({ ...f, date: e.target.value }))} className="border border-stone-300 rounded px-1.5 py-1 text-xs" /></td>
         <td className="p-1.5"><input value={draft.amount} onChange={(e) => setDraft((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))} className="w-20 border border-stone-300 rounded px-1.5 py-1 text-xs" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} /></td>
+        <td className="p-1.5">
+          <label className="flex items-center gap-1 text-[11px] text-stone-600 mb-1">
+            <input type="checkbox" checked={draft.includesVat} onChange={(e) => setDraft((f) => ({ ...f, includesVat: e.target.checked }))} />
+            شامل الضريبة
+          </label>
+          {draft.includesVat && (
+            <input value={draft.vatRate} onChange={(e) => setDraft((f) => ({ ...f, vatRate: e.target.value.replace(/[^0-9.]/g, "") }))} placeholder="النسبة %" className="w-16 border border-stone-300 rounded px-1.5 py-1 text-xs" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
+          )}
+        </td>
         <td className="p-1.5"></td>
         <td className="p-1.5">
           <div className="flex items-center gap-1">
@@ -37,6 +50,11 @@ function ClaimRow({ c, canManage, onUpdateClaim, onDeleteClaim, onAttachClaim })
       <td className="p-1.5 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{c.number}</td>
       <td className="p-1.5 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{c.date}</td>
       <td className="p-1.5 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(c.amount).toLocaleString()}</td>
+      <td className="p-1.5 text-stone-500">
+        {c.includes_vat ? (
+          <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(c.vat_rate).toLocaleString()}٪ ({vat.toLocaleString()} ر.س)</span>
+        ) : "—"}
+      </td>
       <td className="p-1.5"><AttachmentCell path={c.attachment_path} canEdit={canManage} inputId={`claim-${c.id}`} onUpload={(file) => onAttachClaim(c.id, file)} /></td>
       {canManage && (
         <td className="p-1.5">
@@ -96,7 +114,7 @@ function PaymentRow({ c, canManage, onUpdatePayment, onDeletePayment, onAttachPa
 }
 
 export function SubcontractorCard({ sub, canEdit, canManage, onAddClaim, onAddPayment, onDeleteClaim, onDeletePayment, onDeleteSub, onAttachClaim, onAttachPayment, onUpdateClaim, onUpdatePayment, onRate }) {
-  const [newClaim, setNewClaim] = useState({ number: "", amount: "", date: "" });
+  const [newClaim, setNewClaim] = useState({ number: "", amount: "", date: "", includesVat: false, vatRate: "" });
   const [newPayment, setNewPayment] = useState({ number: "", amount: "", date: "" });
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -158,12 +176,19 @@ export function SubcontractorCard({ sub, canEdit, canManage, onAddClaim, onAddPa
 
       <div className="text-xs font-bold mb-1.5">مستخلصات المقاول</div>
       {canEdit && (
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap items-start gap-2 mb-2">
           <input value={newClaim.number} onChange={(e) => setNewClaim((f) => ({ ...f, number: e.target.value.replace(/[^0-9]/g, "") }))} placeholder="رقم المستخلص" className="border border-stone-300 rounded-lg px-2 py-1.5 text-xs w-24" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
           <input type="date" value={newClaim.date} onChange={(e) => setNewClaim((f) => ({ ...f, date: e.target.value }))} className="border border-stone-300 rounded-lg px-2 py-1.5 text-xs" />
           <input value={newClaim.amount} onChange={(e) => setNewClaim((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))} placeholder="القيمة" className="border border-stone-300 rounded-lg px-2 py-1.5 text-xs w-28" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
+          <label className="flex items-center gap-1 text-xs text-stone-600 border border-stone-300 rounded-lg px-2 py-1.5">
+            <input type="checkbox" checked={newClaim.includesVat} onChange={(e) => setNewClaim((f) => ({ ...f, includesVat: e.target.checked }))} />
+            شامل الضريبة
+          </label>
+          {newClaim.includesVat && (
+            <input value={newClaim.vatRate} onChange={(e) => setNewClaim((f) => ({ ...f, vatRate: e.target.value.replace(/[^0-9.]/g, "") }))} placeholder="نسبة الضريبة %" className="border border-stone-300 rounded-lg px-2 py-1.5 text-xs w-24" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
+          )}
           <button
-            onClick={() => { if (newClaim.number && newClaim.amount) { onAddClaim(newClaim); setNewClaim({ number: "", amount: "", date: "" }); } }}
+            onClick={() => { if (newClaim.number && newClaim.amount) { onAddClaim(newClaim); setNewClaim({ number: "", amount: "", date: "", includesVat: false, vatRate: "" }); } }}
             className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
           >
             <Plus className="w-3 h-3" /> إضافة
@@ -173,10 +198,10 @@ export function SubcontractorCard({ sub, canEdit, canManage, onAddClaim, onAddPa
       <div className="border border-stone-200 rounded-lg overflow-hidden mb-3">
         <table className="w-full text-xs">
           <thead className="bg-stone-50 text-stone-500">
-            <tr><th className="text-right p-1.5">رقم</th><th className="text-right p-1.5">التاريخ</th><th className="text-right p-1.5">القيمة</th><th className="text-right p-1.5">مرفق</th>{canManage && <th className="text-right p-1.5">إجراءات</th>}</tr>
+            <tr><th className="text-right p-1.5">رقم</th><th className="text-right p-1.5">التاريخ</th><th className="text-right p-1.5">القيمة</th><th className="text-right p-1.5">الضريبة (مستردة)</th><th className="text-right p-1.5">مرفق</th>{canManage && <th className="text-right p-1.5">إجراءات</th>}</tr>
           </thead>
           <tbody>
-            {claims.length === 0 && (<tr><td colSpan={canManage ? 5 : 4} className="text-center text-stone-400 p-2">لا توجد مستخلصات بعد.</td></tr>)}
+            {claims.length === 0 && (<tr><td colSpan={canManage ? 6 : 5} className="text-center text-stone-400 p-2">لا توجد مستخلصات بعد.</td></tr>)}
             {claims.map((c) => (
               <ClaimRow key={c.id} c={c} canManage={canManage} onUpdateClaim={onUpdateClaim} onDeleteClaim={onDeleteClaim} onAttachClaim={onAttachClaim} />
             ))}
