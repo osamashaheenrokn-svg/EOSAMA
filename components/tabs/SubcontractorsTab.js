@@ -6,7 +6,7 @@ import { PrintButton } from "../PrintButton";
 import { SubcontractorCard } from "../SubcontractorCard";
 
 export function SubcontractorsTab({
-  canAccessLimited, canEditDelete, projSubClaims, projSubPaid, subcontractors,
+  canAccessLimited, canEditDelete, projSubClaims, projSubPaid, projSubVat, subcontractors,
   newSubcontractor, setNewSubcontractor, addSubcontractor,
   addSubClaim, addSubPayment, deleteSubClaim, deleteSubPayment, deleteSubcontractor, attachFile, updateRow, rateSubcontractor,
 }) {
@@ -28,7 +28,12 @@ export function SubcontractorsTab({
           <div className={`text-lg font-bold ${projSubClaims - projSubPaid > 0 ? "text-rose-700" : "text-stone-500"}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Math.max(0, projSubClaims - projSubPaid).toLocaleString()} ر.س</div>
         </div>
       </div>
-      <div className="text-xs text-stone-500 mb-3">إجمالي مستخلصات المقاولين يُضاف تلقائيًا لإجمالي مصروفات المشروع.</div>
+      {projSubVat > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-xs text-stone-700">
+          منها <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubVat.toLocaleString()}</b> ر.س ضريبة قيمة مضافة مستردة (محسوبة من المستخلصات المحدّدة كشاملة للضريبة) — لا تُحتسب ضمن مصروفات المشروع الفعلية.
+        </div>
+      )}
+      <div className="text-xs text-stone-500 mb-3">إجمالي مستخلصات المقاولين (بعد خصم الضريبة المستردة) يُضاف تلقائيًا لإجمالي مصروفات المشروع.</div>
 
       {canAccessLimited && (
         <div className="flex flex-wrap gap-2 mb-5 bg-amber-50 border border-amber-200 rounded-lg p-3">
