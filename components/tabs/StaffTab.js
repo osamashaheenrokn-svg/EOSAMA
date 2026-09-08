@@ -32,12 +32,18 @@ function StaffMemberCard({ s, isOwner, markStaffPaid, unmarkStaffPaid, deleteSta
   const status = staffStatus(s);
   const months = monthsSinceStart(s.start_date);
   const unpaidMonths = months.filter((m) => !paymentForMonth(s, m));
+  const totalReceived = (s.staff_payments || []).reduce((a, p) => a + Number(p.amount || 0) + Number(p.overtime || 0), 0);
 
   return (
     <div className="bg-white border border-stone-200 rounded-lg p-4">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
         <div>
-          <div className="font-bold">{s.name} <span className="text-xs text-stone-400 font-normal">— {s.role}</span></div>
+          <div className="font-bold">
+            {s.name} <span className="text-xs text-stone-400 font-normal">— {s.role}</span>{" "}
+            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+              إجمالي ما استلمه: {totalReceived.toLocaleString()} ر.س
+            </span>
+          </div>
           <div className="text-xs text-stone-500">بداية الدوام: {s.start_date} — الراتب الشهري: {Number(s.monthly_salary).toLocaleString()} ر.س</div>
         </div>
         <span className={`text-xs px-2 py-0.5 rounded-full ${status.color}`}>{status.label}</span>
