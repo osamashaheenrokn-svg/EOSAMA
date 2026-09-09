@@ -7,11 +7,11 @@ import {
   Camera, Wallet, Lock, Plus, ChevronLeft,
   Users, Vault, BarChart3, AlertTriangle, Printer,
   Home, HardHat as SubIcon, FileSpreadsheet, UserCog, LogOut,
-  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus, Receipt, X,
+  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus, Receipt, X, Contact,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  fetchProfiles, fetchProjects, fetchAllTeams, fetchTreasury, fetchProjectDetail, fetchCompanyFinancials, sum,
+  fetchProfiles, fetchProjects, fetchAllTeams, fetchTreasury, fetchProjectDetail, fetchCompanyFinancials, fetchAllStaff, sum,
   fetchCompanySettings, fetchPendingApprovals, fetchCompanyAssets, fetchCompanyTools, fetchLeads, fetchAuditLog, logAction as logActionDb, daysUntil,
   staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey, proratedSalaryForMonth,
   sumNetClaims, sumClaimsVat,
@@ -30,6 +30,7 @@ import { MapView } from "./views/MapView";
 import { AssetsView } from "./views/AssetsView";
 import { PeriodicView } from "./views/PeriodicView";
 import { CompareView } from "./views/CompareView";
+import { StaffDirectoryView } from "./views/StaffDirectoryView";
 import { NotificationsBell } from "./NotificationsBell";
 import { MoreMenu } from "./MoreMenu";
 import { UpdatesTab } from "./tabs/UpdatesTab";
@@ -79,6 +80,7 @@ export function Dashboard({ profile, userEmail }) {
   const [teams, setTeams] = useState([]);
   const [treasuryData, setTreasuryData] = useState({ treasury: null, deposits: [], withdrawals: [] });
   const [companyFinancials, setCompanyFinancials] = useState([]);
+  const [allStaff, setAllStaff] = useState([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
 
   const [view, setView] = useState("home");
@@ -187,6 +189,15 @@ export function Dashboard({ profile, userEmail }) {
       fetchCompanyFinancials(supabase, projects).then(setCompanyFinancials).catch(() => setCompanyFinancials([]));
     }
   }, [canSeeTreasury, canViewAllFinance, projects, supabase]);
+
+  const reloadAllStaff = useCallback(() => {
+    fetchAllStaff(supabase).then(setAllStaff).catch(() => setAllStaff([]));
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!(isAdmin && view === "staffDirectory")) return;
+    reloadAllStaff();
+  }, [isAdmin, view, reloadAllStaff]);
 
   useEffect(() => {
     if (!canViewAllFinance) return;
@@ -352,10 +363,10 @@ export function Dashboard({ profile, userEmail }) {
       setSaveError("تعذّر الحذف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
     }
   }
-  async function attachFile(table, id, file) {
+  async function attachFile(table, id, file, column = "attachment_path") {
     try {
       const path = await uploadAttachment(supabase, activeId, file);
-      const { error } = await supabase.from(table).update({ attachment_path: path }).eq("id", id);
+      const { error } = await supabase.from(table).update({ [column]: path }).eq("id", id);
       if (error) throw error;
       reloadDetail(activeId);
     } catch {
@@ -464,6 +475,49 @@ export function Dashboard({ profile, userEmail }) {
       reloadDetail(activeId);
     } catch {
       setSaveError("تعذّر التراجع عن تسجيل الصرف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
+  async function updateStaffPayment(staffId, month, amount, overtime) {
+    const member = d.staff.find((s) => s.id === staffId);
+    try {
+      const { error } = await supabase.from("staff_payments").update({ amount: Number(amount), overtime: Number(overtime || 0) }).eq("staff_id", staffId).eq("month", month);
+      if (error) throw error;
+      logAction(`تعديل راتب "${member?.name}" لشهر ${month} — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر حفظ التعديل. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
+  async function endStaffAssignment(staffId, endDate) {
+    const member = d.staff.find((s) => s.id === staffId);
+    try {
+      const { error } = await supabase.from("staff").update({ end_date: endDate }).eq("id", staffId);
+      if (error) throw error;
+      logAction(`إنهاء تعيين "${member?.name}" بتاريخ ${endDate} — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر تسجيل إنهاء التعيين. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
+  async function reopenStaffAssignment(staffId) {
+    const member = d.staff.find((s) => s.id === staffId);
+    try {
+      const { error } = await supabase.from("staff").update({ end_date: null }).eq("id", staffId);
+      if (error) throw error;
+      logAction(`إلغاء إنهاء تعيين "${member?.name}" — ${active?.name}`);
+      reloadDetail(activeId);
+    } catch {
+      setSaveError("تعذّر إلغاء إنهاء التعيين. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
+  async function attachStaffFile(staffId, projectId, file, column) {
+    try {
+      const path = await uploadAttachment(supabase, projectId, file);
+      const { error } = await supabase.from("staff").update({ [column]: path }).eq("id", staffId);
+      if (error) throw error;
+      reloadAllStaff();
+    } catch {
+      setSaveError("تعذّر رفع المرفق. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
     }
   }
   async function addRevenue() {
@@ -995,6 +1049,7 @@ export function Dashboard({ profile, userEmail }) {
               isAdmin && { id: "leads", icon: UserPlus, label: "عملاء محتملون" },
               { id: "map", icon: MapPin, label: "خريطة المشروعات" },
               isAdmin && { id: "assets", icon: ClipboardCheck, label: "أصول الشركة" },
+              isAdmin && { id: "staffDirectory", icon: Contact, label: "تقارير العمالة والأطقم الفنية" },
             ].filter(Boolean)}
           />
           <button onClick={() => setLang((l) => (l === "ar" ? "en" : "ar"))} className="text-sm px-3 py-2 rounded flex items-center gap-1.5 bg-slate-800 text-stone-200" title="Toggle language">
@@ -1086,6 +1141,10 @@ export function Dashboard({ profile, userEmail }) {
         />
       )}
 
+      {view === "staffDirectory" && isAdmin && (
+        <StaffDirectoryView staff={allStaff} attachStaffFile={attachStaffFile} />
+      )}
+
       {view === "periodic" && isAdmin && companySettings && (
         <PeriodicView settings={companySettings} setSettings={setPeriodicSetting} companyFinancials={companyFinancials} projects={projects} />
       )}
@@ -1175,6 +1234,7 @@ export function Dashboard({ profile, userEmail }) {
                     staff={d.staff} projStaffMonthly={projStaffMonthly} projStaffPaid={projStaffPaid} projStaffOverdue={projStaffOverdue}
                     newStaffMember={newStaffMember} setNewStaffMember={setNewStaffMember} addStaffMember={addStaffMember}
                     deleteStaffMember={deleteStaffMember} markStaffPaid={markStaffPaid} unmarkStaffPaid={unmarkStaffPaid}
+                    updateStaffPayment={updateStaffPayment} endStaffAssignment={endStaffAssignment} reopenStaffAssignment={reopenStaffAssignment}
                   />
                 )}
                 {effectiveTab === "revenues" && (canAccessLimited || canViewAllFinance) && (
