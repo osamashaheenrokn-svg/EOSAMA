@@ -529,6 +529,15 @@ export function Dashboard({ profile, userEmail }) {
       setSaveError("تعذّر حفظ التقييم. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
     }
   }
+  async function updateStaffField(staffId, field, value) {
+    try {
+      const { error } = await supabase.from("staff").update({ [field]: value }).eq("id", staffId);
+      if (error) throw error;
+      reloadAllStaff();
+    } catch {
+      setSaveError("تعذّر حفظ التعديل. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
   async function addRevenue() {
     if (!newRevenue.number || !newRevenue.amount) return;
     await insertRow("revenues", { project_id: activeId, number: Number(newRevenue.number), amount: Number(newRevenue.amount), notes: newRevenue.notes.trim(), date: new Date().toISOString().slice(0, 10) });
@@ -1151,7 +1160,7 @@ export function Dashboard({ profile, userEmail }) {
       )}
 
       {view === "staffDirectory" && isAdmin && (
-        <StaffDirectoryView staff={allStaff} attachStaffFile={attachStaffFile} rateStaffMember={rateStaffMember} />
+        <StaffDirectoryView staff={allStaff} attachStaffFile={attachStaffFile} rateStaffMember={rateStaffMember} updateStaffField={updateStaffField} />
       )}
 
       {view === "periodic" && isAdmin && companySettings && (
