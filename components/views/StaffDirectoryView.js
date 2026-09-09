@@ -1,11 +1,43 @@
 "use client";
 
-import { useState } from "react";
-import { Contact, Briefcase, Star, ChevronRight, Printer } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Contact, Briefcase, Star, ChevronRight, Printer, User, Camera } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { getSignedUrl } from "@/lib/attachments";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { AttachmentCell } from "../AttachmentCell";
 import { staffStatus, staffPerformancePercent, staffPerformanceLabel, monthsSinceStart, paymentForMonth, formatMonthKey, sum } from "@/lib/db";
+
+function StaffPhoto({ path, size = "w-14 h-14", onUpload, inputId }) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let active = true;
+    if (path) {
+      getSignedUrl(createClient(), path).then((u) => { if (active) setUrl(u); }).catch(() => {});
+    }
+    return () => { active = false; };
+  }, [path]);
+
+  return (
+    <div className={`relative ${size} shrink-0`}>
+      <div className={`${size} rounded-full overflow-hidden bg-stone-100 border border-stone-200 flex items-center justify-center`}>
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <User className="w-1/2 h-1/2 text-stone-400" />
+        )}
+      </div>
+      {onUpload && (
+        <label htmlFor={inputId} className="no-print absolute -bottom-1 -left-1 bg-slate-900 text-white rounded-full p-1 cursor-pointer border-2 border-white" title="تغيير الصورة">
+          <input id={inputId} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} />
+          <Camera className="w-3 h-3" />
+        </label>
+      )}
+    </div>
+  );
+}
 
 function StarRating({ rating, onRate }) {
   return (
@@ -37,6 +69,13 @@ function StaffProfileReport({ s, onBack }) {
       <PrintButton label="تنزيل / طباعة تقرير الموظف" />
 
       <div className="bg-white border border-stone-200 rounded-lg p-5 mb-5">
+        <div className="flex flex-col items-center text-center mb-4">
+          <StaffPhoto path={s.photo_path} size="w-24 h-24" />
+          {s.graduation_year && (
+            <div className="text-xs text-stone-500 mt-2">سنة التخرج: <span className="font-bold text-slate-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{s.graduation_year}</span></div>
+          )}
+        </div>
+
         <div className="flex items-start justify-between flex-wrap gap-2 mb-3">
           <div>
             <div className="font-extrabold text-lg" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{s.name}</div>
@@ -118,7 +157,24 @@ function StaffProfileReport({ s, onBack }) {
   );
 }
 
-export function StaffDirectoryView({ staff, attachStaffFile, rateStaffMember }) {
+function GraduationYearField({ s, updateStaffField }) {
+  const [year, setYear] = useState(s.graduation_year || "");
+  return (
+    <label className="text-xs text-stone-500 flex items-center gap-1">
+      سنة التخرج
+      <input
+        value={year}
+        onChange={(e) => setYear(e.target.value.replace(/[^0-9]/g, ""))}
+        onBlur={() => { if (year !== (s.graduation_year || "")) updateStaffField(s.id, "graduation_year", year || null); }}
+        placeholder="مثال: 2018"
+        className="w-20 border border-stone-300 rounded px-2 py-1 text-xs"
+        style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+      />
+    </label>
+  );
+}
+
+export function StaffDirectoryView({ staff, attachStaffFile, rateStaffMember, updateStaffField }) {
   const [selectedId, setSelectedId] = useState(null);
   const selected = staff.find((s) => s.id === selectedId);
 
@@ -145,11 +201,15 @@ export function StaffDirectoryView({ staff, attachStaffFile, rateStaffMember }) 
           const totalReceived = sum(s.staff_payments, "amount") + sum(s.staff_payments, "overtime");
           return (
             <div key={s.id} className="bg-white border border-stone-200 rounded-lg p-4">
-              <div className="flex items-start justify-between flex-wrap gap-2 mb-3">
-                <div>
-                  <div className="font-bold text-base" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{s.name} <span className="text-xs text-stone-400 font-normal">— {s.role}</span></div>
-                  <div className="text-xs text-stone-500 flex items-center gap-1 mt-1">
-                    <Briefcase className="w-3 h-3" /> {s.projects?.name || "بدون مشروع"}
+              <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
+                <div className="flex items-start gap-3">
+                  <StaffPhoto path={s.photo_path} inputId={`staff-photo-${s.id}`} onUpload={(file) => attachStaffFile(s.id, s.project_id, file, "photo_path")} />
+                  <div>
+                    <div className="font-bold text-base" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{s.name} <span className="text-xs text-stone-400 font-normal">— {s.role}</span></div>
+                    <div className="text-xs text-stone-500 flex items-center gap-1 mt-1">
+                      <Briefcase className="w-3 h-3" /> {s.projects?.name || "بدون مشروع"}
+                    </div>
+                    <div className="mt-1"><GraduationYearField s={s} updateStaffField={updateStaffField} /></div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
