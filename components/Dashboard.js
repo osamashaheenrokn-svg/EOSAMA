@@ -520,6 +520,15 @@ export function Dashboard({ profile, userEmail }) {
       setSaveError("تعذّر رفع المرفق. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
     }
   }
+  async function rateStaffMember(staffId, rating) {
+    try {
+      const { error } = await supabase.from("staff").update({ rating }).eq("id", staffId);
+      if (error) throw error;
+      reloadAllStaff();
+    } catch {
+      setSaveError("تعذّر حفظ التقييم. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
   async function addRevenue() {
     if (!newRevenue.number || !newRevenue.amount) return;
     await insertRow("revenues", { project_id: activeId, number: Number(newRevenue.number), amount: Number(newRevenue.amount), notes: newRevenue.notes.trim(), date: new Date().toISOString().slice(0, 10) });
@@ -1142,7 +1151,7 @@ export function Dashboard({ profile, userEmail }) {
       )}
 
       {view === "staffDirectory" && isAdmin && (
-        <StaffDirectoryView staff={allStaff} attachStaffFile={attachStaffFile} />
+        <StaffDirectoryView staff={allStaff} attachStaffFile={attachStaffFile} rateStaffMember={rateStaffMember} />
       )}
 
       {view === "periodic" && isAdmin && companySettings && (
