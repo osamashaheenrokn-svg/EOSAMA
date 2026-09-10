@@ -128,7 +128,7 @@ export function FinancialTab({ active, detail, projGrandTotal, projRevenue, proj
         );
       })}
       <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 mb-8 text-sm font-bold flex justify-between">
-        <span>إجمالي مستخلصات كل المقاولين والموردين (بعد خصم الضريبة المستردة)</span>
+        <span>إجمالي المدفوع لكل المقاولين والموردين (بدون الضريبة المستردة)</span>
         <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</span>
       </div>
 
