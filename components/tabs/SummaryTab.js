@@ -42,7 +42,7 @@ export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, p
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projLaborCost.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-4">
-          <div className="text-xs text-stone-500 mb-1">مستخلصات مقاولي الباطن والتوريدات <span className="text-stone-400 font-normal">(بعد خصم الضريبة المستردة)</span></div>
+          <div className="text-xs text-stone-500 mb-1">المدفوع لمقاولي الباطن والتوريدات <span className="text-stone-400 font-normal">(بدون الضريبة المستردة)</span></div>
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-4">
