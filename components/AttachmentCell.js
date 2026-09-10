@@ -5,7 +5,7 @@ import { Paperclip, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSignedUrl, attachmentDisplayName } from "@/lib/attachments";
 
-export function AttachmentCell({ path, canEdit, onUpload, inputId }) {
+export function AttachmentCell({ path, canEdit, onUpload, inputId, accept = "image/*,.pdf" }) {
   const [signedUrl, setSignedUrl] = useState(null);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export function AttachmentCell({ path, canEdit, onUpload, inputId }) {
       )}
       {canEdit && (
         <label htmlFor={inputId} className="cursor-pointer text-slate-500 hover:text-slate-900 border border-stone-300 rounded px-1.5 py-1" title="رفع مرفق (صورة أو PDF)">
-          <input id={inputId} type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} />
+          <input id={inputId} type="file" accept={accept} className="hidden" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} />
           <Upload className="w-3.5 h-3.5" />
         </label>
       )}
