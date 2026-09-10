@@ -1,16 +1,17 @@
 "use client";
 
-import { Vault, FileSpreadsheet, Upload, Plus, Check, Pencil } from "lucide-react";
+import { Vault, FileSpreadsheet, Plus, Check, Pencil } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { RowActions } from "../RowActions";
+import { AttachmentCell } from "../AttachmentCell";
 
 export function TreasuryView({
   isAdmin, treasuryData, t, totalDeposits, totalWithdrawals, netInvested, custodyRemaining, netProfit,
   setTreasuryField, setOverride, clearOverride, setTreasuryTextField, setView,
   newDeposit, setNewDeposit, addDeposit, deleteDeposit,
   newWithdrawal, setNewWithdrawal, addWithdrawal, deleteWithdrawal,
-  importMessage, importTreasuryFromExcel, grantableRoster, setUserFlag,
+  attachTreasuryFile, grantableRoster, setUserFlag,
   overdueCustodyTotal, overdueLaborTotal, overdueSubcontractorsTotal, totalOverdueAmounts,
 }) {
   if (!t) return null;
@@ -25,19 +26,26 @@ export function TreasuryView({
       </div>
       <div className="text-sm text-stone-500 mb-5">مرئية فقط للمدير، أو لمن يمنحه المدير الصلاحية صراحةً — لا تظهر لأي مهندس آخر.</div>
 
-      {isAdmin && (
-        <div className="no-print bg-white border border-stone-200 rounded-lg p-4 mb-6">
-          <div className="text-sm font-bold mb-1 flex items-center gap-1.5"><FileSpreadsheet className="w-4 h-4 text-emerald-700" /> تحديث الأرقام من ملف إكسل</div>
-          <div className="text-xs text-stone-500 mb-3">ارفع ملف إكسل وهيحاول النظام يتعرّف على الأرقام ويعبّيها تلقائيًا — تقدر برضه تدخل أو تعدّل أي رقم يدويًا في أي وقت.</div>
-          <label className="inline-flex items-center gap-2 bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold cursor-pointer">
-            <Upload className="w-4 h-4" /> اختيار ملف إكسل
-            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => e.target.files[0] && importTreasuryFromExcel(e.target.files[0])} />
-          </label>
-          {importMessage && (
-            <div className="mt-3 text-xs bg-stone-50 border border-stone-200 rounded-lg p-3 whitespace-pre-line text-stone-700">{importMessage}</div>
-          )}
+      <div className="bg-white border border-stone-200 rounded-lg p-4 mb-6">
+        <div className="text-sm font-bold mb-3 flex items-center gap-1.5"><FileSpreadsheet className="w-4 h-4 text-emerald-700" /> ملفات مرجعية للاطّلاع</div>
+        <div className="text-xs text-stone-500 mb-3">ملفات إكسل أو PDF يرفعها المدير كمرجع فقط — لا تُستخدم في أي حسابات تلقائية. أي شخص عنده صلاحية اطّلاع على الخزينة الرئيسية يقدر يفتح أو ينزّل هذه الملفات من عنده.</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="border border-stone-200 rounded-lg p-3 flex items-center justify-between gap-2">
+            <span className="text-xs text-stone-600 font-bold">مصروفات العهدة (للاطّلاع)</span>
+            <AttachmentCell
+              path={t.custody_expenses_file_path} canEdit={isAdmin} inputId="treasury-custody-expenses"
+              accept=".xlsx,.xls,.pdf" onUpload={(file) => attachTreasuryFile(file, "custody_expenses_file_path")}
+            />
+          </div>
+          <div className="border border-stone-200 rounded-lg p-3 flex items-center justify-between gap-2">
+            <span className="text-xs text-stone-600 font-bold">الداخل والخارج في حساب الشركة (للاطّلاع)</span>
+            <AttachmentCell
+              path={t.company_cashflow_file_path} canEdit={isAdmin} inputId="treasury-company-cashflow"
+              accept=".xlsx,.xls,.pdf" onUpload={(file) => attachTreasuryFile(file, "company_cashflow_file_path")}
+            />
+          </div>
         </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="bg-white border border-stone-200 rounded-lg p-4">
