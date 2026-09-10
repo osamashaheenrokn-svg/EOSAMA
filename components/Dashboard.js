@@ -14,7 +14,7 @@ import {
   fetchProfiles, fetchProjects, fetchAllTeams, fetchTreasury, fetchProjectDetail, fetchCompanyFinancials, fetchAllStaff, sum,
   fetchCompanySettings, fetchPendingApprovals, fetchCompanyAssets, fetchCompanyTools, fetchLeads, fetchAuditLog, logAction as logActionDb, daysUntil,
   staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey, proratedSalaryForMonth,
-  sumNetClaims, sumClaimsVat,
+  sumClaimsVat,
 } from "@/lib/db";
 import { uploadAttachment } from "@/lib/attachments";
 import { HomeView } from "./views/HomeView";
@@ -275,10 +275,10 @@ export function Dashboard({ profile, userEmail }) {
   const projStaffPaid = staffPaidTotal(d.staff);
   const projStaffOverdue = staffOverdueTotal(d.staff);
   const projSubClaims = d.subcontractors.reduce((a, s) => a + sum(s.subcontractor_claims, "amount"), 0);
-  const projSubClaimsNet = d.subcontractors.reduce((a, s) => a + sumNetClaims(s.subcontractor_claims), 0);
   const projSubVat = d.subcontractors.reduce((a, s) => a + sumClaimsVat(s.subcontractor_claims), 0);
   const projSubPaid = d.subcontractors.reduce((a, s) => a + sum(s.subcontractor_payments, "amount"), 0);
-  const projGrandTotal = projCustodySpent + projLaborCost + projStaffPaid + projSubClaimsNet;
+  const projSubPaidNet = projSubPaid - projSubVat;
+  const projGrandTotal = projCustodySpent + projLaborCost + projStaffPaid + projSubPaidNet;
   const projRevenue = sum(d.revenues, "amount");
   const projProfit = projRevenue - projGrandTotal;
   const projProfitPercent = projRevenue !== 0 ? (projProfit / projRevenue) * 100 : 0;
@@ -1206,14 +1206,14 @@ export function Dashboard({ profile, userEmail }) {
                 )}
                 {effectiveTab === "totals" && (canAccessLimited || canViewAllFinance) && (
                   <TotalsTab key={activeId} active={active} isOwner={isOwner}
-                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffPaid={projStaffPaid} projSubClaims={projSubClaimsNet}
+                    projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffPaid={projStaffPaid} projSubClaims={projSubPaidNet}
                     projRevenue={projRevenue}
                     setProjectField={setProjectField} projProfit={projProfit} projProfitPercent={projProfitPercent}
                   />
                 )}
                 {effectiveTab === "subcontractors" && (canAccessLimited || canViewAllFinance) && (
                   <SubcontractorsTab key={activeId} canAccessLimited={canAccessLimited} canEditDelete={canEditDelete}
-                    projSubClaims={projSubClaims} projSubPaid={projSubPaid} projSubVat={projSubVat}
+                    projSubClaims={projSubClaims} projSubPaid={projSubPaid} projSubVat={projSubVat} projSubPaidNet={projSubPaidNet}
                     subcontractors={d.subcontractors} newSubcontractor={newSubcontractor} setNewSubcontractor={setNewSubcontractor} addSubcontractor={addSubcontractor}
                     addSubClaim={addSubClaim} addSubPayment={addSubPayment} deleteSubClaim={deleteSubClaim} deleteSubPayment={deleteSubPayment}
                     deleteSubcontractor={deleteSubcontractor} attachFile={attachFile} updateRow={updateRow} rateSubcontractor={rateSubcontractor}
@@ -1223,12 +1223,12 @@ export function Dashboard({ profile, userEmail }) {
                   <FinancialTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projRevenue={projRevenue} projProfit={projProfit} projProfitPercent={projProfitPercent}
                     projCustodyReceived={projCustodyReceived} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projLaborPaid={projLaborPaid}
                     projStaffPaid={projStaffPaid} projStaffOverdue={projStaffOverdue}
-                    projSubClaims={projSubClaimsNet} exportFinancialReportExcel={exportFinancialReportExcel}
+                    projSubClaims={projSubPaidNet} exportFinancialReportExcel={exportFinancialReportExcel}
                   />
                 )}
                 {effectiveTab === "summary" && (isOwner || canViewAllFinance) && (
                   <SummaryTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projStaffPaid={projStaffPaid}
-                    projSubClaims={projSubClaimsNet} projRevenue={projRevenue} projProfit={projProfit} projProfitPercent={projProfitPercent}
+                    projSubClaims={projSubPaidNet} projRevenue={projRevenue} projProfit={projProfit} projProfitPercent={projProfitPercent}
                     needs={computeNeeds({ custodyReceived: projCustodyReceived, custodySpent: projCustodySpent, laborCost: projLaborCost, laborPaid: projLaborPaid, subClaims: projSubClaims, subPaid: projSubPaid, staffOverdue: projStaffOverdue })}
                   />
                 )}
