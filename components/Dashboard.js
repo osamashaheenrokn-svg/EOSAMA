@@ -100,7 +100,6 @@ export function Dashboard({ profile, userEmail }) {
 
   const [newDeposit, setNewDeposit] = useState({ amount: "", desc: "" });
   const [newWithdrawal, setNewWithdrawal] = useState({ amount: "", notes: "" });
-  const [importMessage, setImportMessage] = useState("");
 
   const [newUpdate, setNewUpdate] = useState("");
   const [newPhotoCaption, setNewPhotoCaption] = useState("");
@@ -864,72 +863,15 @@ export function Dashboard({ profile, userEmail }) {
   async function deleteDeposit(id) { await supabase.from("treasury_deposits").delete().eq("id", id); reloadTreasuryData(); }
   async function deleteWithdrawal(id) { await supabase.from("treasury_withdrawals").delete().eq("id", id); reloadTreasuryData(); }
 
-  function importTreasuryFromExcel(file) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const wb = XLSX.read(e.target.result, { type: "array" });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-
-        const findNumberInRow = (row) => {
-          for (const cell of row) {
-            if (typeof cell === "number") return cell;
-            if (typeof cell === "string" && /^-?[\d.,]+$/.test(cell.trim()) && cell.trim() !== "") return Number(cell.replace(/,/g, ""));
-          }
-          return null;
-        };
-        const rowText = (row) => row.map((c) => String(c || "")).join(" ");
-
-        const fieldMap = [
-          ["external_claims", ["مستخلصات خارجية", "مستخلصات خارجيه"]],
-          ["cash_custody_remaining", ["المتبقي بالعهدة (كاش)", "المتبقى بالعهدة (كاش)", "المتبقي بالعهده كاش"]],
-          ["company_sheet_remaining", ["المتبقي بشيت الشركة", "المتبقى بشيت الشركة"]],
-        ];
-
-        const foundFields = {};
-        let mode = null;
-        const foundDeposits = [];
-        const foundWithdrawals = [];
-
-        rows.forEach((row) => {
-          const text = rowText(row);
-          if (!text.trim()) return;
-          fieldMap.forEach(([key, labels]) => {
-            if (labels.some((l) => text.includes(l))) {
-              const num = findNumberInRow(row);
-              if (num !== null) foundFields[key] = num;
-            }
-          });
-          if (text.includes("الإيداعات") || text.includes("إيداعات رأس المال")) { mode = "deposits"; return; }
-          if (text.includes("الراجع للشركاء") || text.includes("الراجع من رأس المال")) { mode = "withdrawals"; return; }
-          if (text.includes("الإجمالي") || text.includes("رصيد")) { mode = null; return; }
-          if (mode) {
-            const num = findNumberInRow(row);
-            const dateCell = row.find((c) => typeof c === "string" && /\d{4}-\d{2}-\d{2}/.test(c));
-            if (num !== null && num > 0) {
-              if (mode === "deposits") foundDeposits.push({ date: dateCell || null, amount: num, description: rowText(row).slice(0, 60), from_import: true });
-              else foundWithdrawals.push({ date: dateCell || null, amount: num, notes: rowText(row).slice(0, 60), from_import: true });
-            }
-          }
-        });
-
-        if (Object.keys(foundFields).length) await supabase.from("treasury").update(foundFields).eq("id", 1);
-        if (foundDeposits.length) await supabase.from("treasury_deposits").insert(foundDeposits);
-        if (foundWithdrawals.length) await supabase.from("treasury_withdrawals").insert(foundWithdrawals);
-        await reloadTreasuryData();
-
-        const summary = [
-          ...Object.keys(foundFields).map((k) => `• تحديث ${k}`),
-          foundDeposits.length ? `• ${foundDeposits.length} إيداع مستورد` : null,
-          foundWithdrawals.length ? `• ${foundWithdrawals.length} سحب/راجع مستورد` : null,
-        ].filter(Boolean);
-        setImportMessage(summary.length ? `تم الاستيراد بنجاح:\n${summary.join("\n")}\nراجع الأرقام قبل الاعتماد عليها.` : "لم يتم التعرف على بيانات مطابقة في هذا الملف.");
-      } catch {
-        setImportMessage("تعذّرت قراءة الملف. تأكد أنه ملف Excel صحيح (.xlsx) وحاول مرة أخرى.");
-      }
-    };
-    reader.readAsArrayBuffer(file);
+  async function attachTreasuryFile(file, column) {
+    try {
+      const path = await uploadAttachment(supabase, "treasury", file);
+      const { error } = await supabase.from("treasury").update({ [column]: path }).eq("id", 1);
+      if (error) throw error;
+      reloadTreasuryData();
+    } catch {
+      setSaveError("تعذّر رفع الملف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
   }
 
   function exportFinancialReportExcel() {
@@ -1123,7 +1065,7 @@ export function Dashboard({ profile, userEmail }) {
           setTreasuryField={setTreasuryField} setOverride={setOverride} clearOverride={clearOverride}
           newDeposit={newDeposit} setNewDeposit={setNewDeposit} addDeposit={addDeposit} deleteDeposit={deleteDeposit}
           newWithdrawal={newWithdrawal} setNewWithdrawal={setNewWithdrawal} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal}
-          importMessage={importMessage} importTreasuryFromExcel={importTreasuryFromExcel}
+          attachTreasuryFile={attachTreasuryFile}
           grantableRoster={grantableRoster} setUserFlag={setUserFlag}
           setTreasuryTextField={setTreasuryTextField} setView={setView}
           overdueCustodyTotal={overdueCustodyTotal} overdueLaborTotal={overdueLaborTotal}
