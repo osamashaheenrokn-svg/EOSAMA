@@ -32,7 +32,7 @@ export function TotalsTab({
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffPaid.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
-          <div className="text-xs text-stone-500 mb-1">إجمالي مقاولي الباطن والتوريدات <span className="text-stone-400 font-normal">(بعد خصم الضريبة المستردة، تفاصيل في تبويب &quot;مقاولو الباطن والتوريدات&quot;)</span></div>
+          <div className="text-xs text-stone-500 mb-1">المدفوع لمقاولي الباطن والتوريدات <span className="text-stone-400 font-normal">(بدون الضريبة المستردة، تفاصيل في تبويب &quot;مقاولو الباطن والتوريدات&quot;)</span></div>
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</div>
         </div>
       </div>
