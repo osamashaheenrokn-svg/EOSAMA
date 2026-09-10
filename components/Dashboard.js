@@ -1280,7 +1280,7 @@ export function Dashboard({ profile, userEmail }) {
                 {effectiveTab === "financial" && (canAccessLimited || canViewAllFinance) && (
                   <FinancialTab key={activeId} active={active} detail={d} projGrandTotal={projGrandTotal} projRevenue={projRevenue} projProfit={projProfit} projProfitPercent={projProfitPercent}
                     projCustodyReceived={projCustodyReceived} projCustodySpent={projCustodySpent} projLaborCost={projLaborCost} projLaborPaid={projLaborPaid}
-                    projStaffMonthly={projStaffMonthly} projStaffOverdue={projStaffOverdue}
+                    projStaffPaid={projStaffPaid} projStaffOverdue={projStaffOverdue}
                     projSubClaims={projSubClaimsNet} exportFinancialReportExcel={exportFinancialReportExcel}
                   />
                 )}
