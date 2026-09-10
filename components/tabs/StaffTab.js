@@ -167,7 +167,7 @@ export function StaffTab({
           <div className="text-lg font-bold text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffPaid.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
-          <div className="text-xs text-stone-500 mb-1">رواتب متأخرة (الشهر الحالي)</div>
+          <div className="text-xs text-stone-500 mb-1">رواتب متأخرة <span className="text-stone-400 font-normal">(شهور سابقة منتهية بدون تسجيل)</span></div>
           <div className={`text-lg font-bold ${projStaffOverdue > 0 ? "text-rose-700" : "text-stone-500"}`} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffOverdue > 0 ? projStaffOverdue.toLocaleString() + " ر.س" : "لا يوجد"}</div>
         </div>
       </div>
