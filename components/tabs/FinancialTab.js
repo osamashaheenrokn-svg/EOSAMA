@@ -5,7 +5,7 @@ import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { sum, staffStatus } from "@/lib/db";
 
-export function FinancialTab({ active, detail, projGrandTotal, projRevenue, projProfit, projProfitPercent, projCustodyReceived, projCustodySpent, projLaborCost, projLaborPaid, projStaffMonthly, projStaffOverdue, projSubClaims, exportFinancialReportExcel }) {
+export function FinancialTab({ active, detail, projGrandTotal, projRevenue, projProfit, projProfitPercent, projCustodyReceived, projCustodySpent, projLaborCost, projLaborPaid, projStaffPaid, projStaffOverdue, projSubClaims, exportFinancialReportExcel }) {
   return (
     <div className="print-area">
       <PrintHeader title={`التقرير المالي الشامل — ${active.name}`} />
@@ -100,7 +100,7 @@ export function FinancialTab({ active, detail, projGrandTotal, projRevenue, proj
                 <tr key={s.id} className="border-t border-stone-100"><td className="p-1.5 font-bold">{s.name}</td><td className="p-1.5 text-stone-600">{s.role}</td><td className="p-1.5 font-bold" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(s.monthly_salary).toLocaleString()}</td><td className="p-1.5 text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{s.start_date}</td><td className={`p-1.5 font-bold ${st.overdue ? "text-rose-700" : "text-stone-600"}`}>{st.label}</td></tr>
               );
             })}
-            <tr className="border-t border-stone-200 bg-stone-50 font-bold"><td className="p-1.5" colSpan={2}>الإجمالي الشهري</td><td className="p-1.5" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffMonthly.toLocaleString()}</td><td className="p-1.5" colSpan={2}></td></tr>
+            <tr className="border-t border-stone-200 bg-stone-50 font-bold"><td className="p-1.5" colSpan={2}>إجمالي الرواتب المستلمة</td><td className="p-1.5" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffPaid.toLocaleString()}</td><td className="p-1.5" colSpan={2}></td></tr>
             {projStaffOverdue > 0 && (
               <tr className="border-t border-stone-200"><td className="p-1.5 font-bold text-rose-700" colSpan={2}>رواتب متأخرة</td><td className="p-1.5 font-bold text-rose-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projStaffOverdue.toLocaleString()}</td><td className="p-1.5" colSpan={2}></td></tr>
             )}
