@@ -6,7 +6,7 @@ import { PrintButton } from "../PrintButton";
 import { SubcontractorCard } from "../SubcontractorCard";
 
 export function SubcontractorsTab({
-  canAccessLimited, canEditDelete, projSubClaims, projSubPaid, projSubVat, subcontractors,
+  canAccessLimited, canEditDelete, projSubClaims, projSubPaid, projSubVat, projSubPaidNet, subcontractors,
   newSubcontractor, setNewSubcontractor, addSubcontractor,
   addSubClaim, addSubPayment, deleteSubClaim, deleteSubPayment, deleteSubcontractor, attachFile, updateRow, rateSubcontractor,
 }) {
@@ -14,14 +14,18 @@ export function SubcontractorsTab({
     <div className="print-area">
       <PrintHeader title="تقرير مقاولي الباطن والتوريدات" />
       <PrintButton />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <div className="bg-white border border-stone-200 rounded-lg p-3">
           <div className="text-xs text-stone-500 mb-1">إجمالي مستخلصات المقاولين</div>
           <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubClaims.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
-          <div className="text-xs text-stone-500 mb-1">إجمالي المدفوع للمقاولين</div>
+          <div className="text-xs text-stone-500 mb-1">إجمالي المدفوع للمقاولين <span className="text-stone-400 font-normal">(شامل الضريبة)</span></div>
           <div className="text-lg font-bold text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubPaid.toLocaleString()} ر.س</div>
+        </div>
+        <div className="bg-white border border-stone-200 rounded-lg p-3">
+          <div className="text-xs text-stone-500 mb-1">إجمالي المدفوع للمقاولين <span className="text-stone-400 font-normal">(بدون الضريبة)</span></div>
+          <div className="text-lg font-bold text-emerald-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubPaidNet.toLocaleString()} ر.س</div>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg p-3">
           <div className="text-xs text-stone-500 mb-1">المتبقي (مطلوب سداده)</div>
@@ -30,10 +34,10 @@ export function SubcontractorsTab({
       </div>
       {projSubVat > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-xs text-stone-700">
-          منها <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubVat.toLocaleString()}</b> ر.س ضريبة قيمة مضافة مستردة (محسوبة من المستخلصات المحدّدة كشاملة للضريبة) — لا تُحتسب ضمن مصروفات المشروع الفعلية.
+          منها <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{projSubVat.toLocaleString()}</b> ر.س ضريبة قيمة مضافة مستردة (محسوبة من المستخلصات المحدّدة كشاملة للضريبة) — مخصومة من إجمالي المدفوع، ولا تُحتسب ضمن مصروفات المشروع الفعلية لأنها تُستردّ لاحقًا في الإقرار الضريبي.
         </div>
       )}
-      <div className="text-xs text-stone-500 mb-3">إجمالي مستخلصات المقاولين (بعد خصم الضريبة المستردة) يُضاف تلقائيًا لإجمالي مصروفات المشروع.</div>
+      <div className="text-xs text-stone-500 mb-3">إجمالي المدفوع للمقاولين بدون الضريبة يُضاف تلقائيًا لإجمالي مصروفات المشروع.</div>
 
       {canAccessLimited && (
         <div className="flex flex-wrap gap-2 mb-5 bg-amber-50 border border-amber-200 rounded-lg p-3">
