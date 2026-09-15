@@ -1,25 +1,17 @@
 "use client";
 
-import { Vault, FileSpreadsheet, Plus, Check, Pencil } from "lucide-react";
+import { Vault, FileSpreadsheet, Plus } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { RowActions } from "../RowActions";
 import { AttachmentCell } from "../AttachmentCell";
-
-const MORE_ACCESS_OPTIONS = [
-  { key: "company", label: "نظرة عامة على المشروعات" },
-  { key: "needs", label: "المطلوب لكل موقع" },
-  { key: "compare", label: "مقارنة المشروعات" },
-  { key: "assets", label: "أصول الشركة" },
-  { key: "staffDirectory", label: "تقارير العمالة والأطقم الفنية" },
-];
 
 export function TreasuryView({
   isAdmin, treasuryData, t, totalDeposits, totalWithdrawals, netInvested, custodyRemaining, netProfit,
   setTreasuryField, setOverride, clearOverride, setTreasuryTextField, setView,
   newDeposit, setNewDeposit, addDeposit, deleteDeposit,
   newWithdrawal, setNewWithdrawal, addWithdrawal, deleteWithdrawal,
-  attachTreasuryFile, grantableRoster, setUserFlag, toggleUserMoreAccess,
+  attachTreasuryFile,
   overdueCustodyTotal, overdueLaborTotal, overdueSubcontractorsTotal, totalOverdueAmounts,
 }) {
   if (!t) return null;
@@ -253,69 +245,8 @@ export function TreasuryView({
       </div>
 
       {isAdmin && (
-        <div className="bg-white border border-stone-200 rounded-lg p-4 mb-4">
-          <div className="text-sm font-bold mb-3">منح صلاحية اطّلاع على الخزينة الرئيسية</div>
-          <div className="space-y-2">
-            {grantableRoster.map((r) => (
-              <label key={r.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={!!r.treasury_access} onChange={(e) => setUserFlag(r.id, "treasury_access", e.target.checked)} />
-                {r.name}
-                {r.treasury_access && <span className="text-xs text-emerald-700 flex items-center gap-0.5"><Check className="w-3 h-3" /> ممنوح</span>}
-              </label>
-            ))}
-          </div>
-          <div className="text-xs text-stone-400 mt-2">صلاحية اطّلاع الخزينة الرئيسية تمنح تلقائيًا الاطّلاع على &quot;نظرة عامة على المشروعات&quot; و&quot;المطلوب لكل موقع&quot; من القسم التالي كمان — تقدر تمنح أي بند تاني من القسم ده لمن تحب بشكل منفصل.</div>
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="bg-white border border-stone-200 rounded-lg p-4 mb-4">
-          <div className="text-sm font-bold mb-1">صلاحيات اطّلاع مخصصة على تبويبات &quot;المزيد&quot;</div>
-          <div className="text-xs text-stone-500 mb-3">حدّد لكل شخص أي تبويبات من قائمة &quot;المزيد&quot; يقدر يطّلع عليها (بدون صلاحية تعديل — العرض فقط)، بشكل مستقل عن صلاحية الخزينة الرئيسية.</div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-stone-500 text-xs">
-                <tr>
-                  <th className="text-right p-2">الاسم</th>
-                  {MORE_ACCESS_OPTIONS.map((opt) => (
-                    <th key={opt.key} className="text-center p-2 whitespace-nowrap">{opt.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {grantableRoster.map((r) => (
-                  <tr key={r.id} className="border-t border-stone-100">
-                    <td className="p-2 font-bold whitespace-nowrap">{r.name}</td>
-                    {MORE_ACCESS_OPTIONS.map((opt) => (
-                      <td key={opt.key} className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={(r.more_access || []).includes(opt.key)}
-                          onChange={(e) => toggleUserMoreAccess(r.id, opt.key, e.target.checked)}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="bg-white border border-stone-200 rounded-lg p-4">
-          <div className="text-sm font-bold mb-1 flex items-center gap-1.5"><Pencil className="w-4 h-4 text-amber-600" /> منح صلاحية تعديل وحذف العهدة والمصروفات</div>
-          <div className="text-xs text-stone-500 mb-3">بشكل افتراضي، التعديل والحذف على بنود العهدة والمصروفات متاح للمدير فقط.</div>
-          <div className="space-y-2">
-            {grantableRoster.map((r) => (
-              <label key={r.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={!!r.edit_access} onChange={(e) => setUserFlag(r.id, "edit_access", e.target.checked)} />
-                {r.name}
-                {r.edit_access && <span className="text-xs text-emerald-700 flex items-center gap-0.5"><Check className="w-3 h-3" /> ممنوح</span>}
-              </label>
-            ))}
-          </div>
+        <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 text-xs text-stone-500">
+          منح صلاحية الاطّلاع على الخزينة الرئيسية، والتعديل والحذف على العهدة والمصروفات، وصلاحيات تبويبات &quot;المزيد&quot;، كلها بقت من صفحة &quot;إدارة المستخدمين&quot;.
         </div>
       )}
     </div>
