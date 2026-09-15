@@ -22,11 +22,19 @@ function DeleteUserButton({ onDelete }) {
 
 const KIND_LABELS = { admin: "المدير", engineer: "مهندس", custom: "مستخدم إضافي", viewer: "مشاهد" };
 
+const MORE_ACCESS_OPTIONS = [
+  { key: "company", label: "نظرة عامة على المشروعات" },
+  { key: "needs", label: "المطلوب لكل موقع" },
+  { key: "compare", label: "مقارنة المشروعات" },
+  { key: "assets", label: "أصول الشركة" },
+  { key: "staffDirectory", label: "تقارير العمالة والأطقم الفنية" },
+];
+
 export function UsersView({
   roster, projects, teams, teamDrafts, setTeamDrafts, reassignDrafts, setReassignDrafts,
   newStandaloneEngineer, setNewStandaloneEngineer, newCustomUserForm, setNewCustomUserForm,
   addStandaloneEngineer, addCustomUser, deleteUser, reassignProjectEngineer, addTeamMember, removeTeamMember,
-  setUserFlag, userActionError,
+  setUserFlag, toggleUserMoreAccess, userActionError,
 }) {
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -45,6 +53,7 @@ export function UsersView({
           <div className="flex flex-col gap-2">
             <input value={newStandaloneEngineer.name} onChange={(e) => setNewStandaloneEngineer((f) => ({ ...f, name: e.target.value }))} placeholder="اسم المهندس" className="border border-stone-300 rounded-lg px-3 py-2 text-sm" />
             <input type="email" value={newStandaloneEngineer.email} onChange={(e) => setNewStandaloneEngineer((f) => ({ ...f, email: e.target.value }))} placeholder="بريده الإلكتروني" className="border border-stone-300 rounded-lg px-3 py-2 text-sm" />
+            <input type="tel" value={newStandaloneEngineer.phone} onChange={(e) => setNewStandaloneEngineer((f) => ({ ...f, phone: e.target.value }))} placeholder="رقم جواله (اختياري)" className="border border-stone-300 rounded-lg px-3 py-2 text-sm" />
             <button onClick={addStandaloneEngineer} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">
               <UserPlus className="w-4 h-4" /> إضافة
             </button>
@@ -56,6 +65,7 @@ export function UsersView({
           <div className="text-xs text-stone-500 mb-2">غير مرتبط بأي مشروع — يحصل بس على الصلاحيات اللي تحددها له.</div>
           <input value={newCustomUserForm.name} onChange={(e) => setNewCustomUserForm((f) => ({ ...f, name: e.target.value }))} placeholder="اسم المستخدم (مثال: المحاسب العام)" className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm mb-2" />
           <input type="email" value={newCustomUserForm.email} onChange={(e) => setNewCustomUserForm((f) => ({ ...f, email: e.target.value }))} placeholder="بريده الإلكتروني" className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm mb-2" />
+          <input type="tel" value={newCustomUserForm.phone} onChange={(e) => setNewCustomUserForm((f) => ({ ...f, phone: e.target.value }))} placeholder="رقم جواله (اختياري)" className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm mb-2" />
           <div className="flex flex-col gap-1 mb-3 text-xs">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={newCustomUserForm.reports} onChange={(e) => setNewCustomUserForm((f) => ({ ...f, reports: e.target.checked }))} />
@@ -93,6 +103,10 @@ export function UsersView({
                   <div className="text-xs text-stone-500 mt-1">
                     {u.kind === "engineer" ? (theirProject ? `مسؤول عن: ${theirProject.name}` : "بانتظار تعيين مشروع") : "غير مرتبط بمشروع"}
                   </div>
+                  <div className="text-xs text-stone-500 mt-1 flex flex-wrap gap-x-3">
+                    {u.email && <span>{u.email}</span>}
+                    {u.phone && <span>{u.phone}</span>}
+                  </div>
                 </div>
                 {u.kind !== "admin" && <DeleteUserButton onDelete={() => deleteUser(u.id)} />}
               </div>
@@ -118,19 +132,34 @@ export function UsersView({
               )}
 
               {u.kind !== "admin" && (
-                <div className="flex flex-wrap gap-4 text-xs border-t border-stone-100 pt-3">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={!!u.reports_access} onChange={(e) => setUserFlag(u.id, "reports_access", e.target.checked)} />
-                    التقارير المالية لكل المشاريع
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={!!u.treasury_access} onChange={(e) => setUserFlag(u.id, "treasury_access", e.target.checked)} />
-                    الخزينة الرئيسية
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={!!u.edit_access} onChange={(e) => setUserFlag(u.id, "edit_access", e.target.checked)} />
-                    التعديل والحذف على العهدة والمصروفات
-                  </label>
+                <div className="border-t border-stone-100 pt-3">
+                  <div className="flex flex-wrap gap-4 text-xs mb-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={!!u.reports_access} onChange={(e) => setUserFlag(u.id, "reports_access", e.target.checked)} />
+                      التقارير المالية لكل المشاريع
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={!!u.treasury_access} onChange={(e) => setUserFlag(u.id, "treasury_access", e.target.checked)} />
+                      الخزينة الرئيسية
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={!!u.edit_access} onChange={(e) => setUserFlag(u.id, "edit_access", e.target.checked)} />
+                      التعديل والحذف على العهدة والمصروفات
+                    </label>
+                  </div>
+                  <div className="text-[11px] text-stone-400 mb-1.5">صلاحيات تبويبات &quot;المزيد&quot; (اطّلاع فقط):</div>
+                  <div className="flex flex-wrap gap-4 text-xs">
+                    {MORE_ACCESS_OPTIONS.map((opt) => (
+                      <label key={opt.key} className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={(u.more_access || []).includes(opt.key)}
+                          onChange={(e) => toggleUserMoreAccess(u.id, opt.key, e.target.checked)}
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
