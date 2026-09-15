@@ -39,15 +39,19 @@ function StaffPhoto({ path, size = "w-14 h-14", onUpload, inputId }) {
   );
 }
 
-function StarRating({ rating, onRate }) {
+function StarRating({ rating, onRate, readOnly }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <div className="flex items-center gap-0.5">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <button key={n} onClick={() => onRate(n === rating ? 0 : n)} className={n <= rating ? "text-amber-500" : "text-stone-300"} title={`${n}/10`}>
-            <Star className="w-3.5 h-3.5" fill="currentColor" />
-          </button>
-        ))}
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) =>
+          readOnly ? (
+            <Star key={n} className={`w-3.5 h-3.5 ${n <= rating ? "text-amber-500" : "text-stone-300"}`} fill="currentColor" />
+          ) : (
+            <button key={n} onClick={() => onRate(n === rating ? 0 : n)} className={n <= rating ? "text-amber-500" : "text-stone-300"} title={`${n}/10`}>
+              <Star className="w-3.5 h-3.5" fill="currentColor" />
+            </button>
+          )
+        )}
       </div>
       <span className="text-xs text-stone-500" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{staffPerformancePercent(rating)}٪</span>
     </div>
@@ -157,8 +161,11 @@ function StaffProfileReport({ s, onBack }) {
   );
 }
 
-function GraduationYearField({ s, updateStaffField }) {
+function GraduationYearField({ s, updateStaffField, isAdmin }) {
   const [year, setYear] = useState(s.graduation_year || "");
+  if (!isAdmin) {
+    return <div className="text-xs text-stone-500">سنة التخرج: <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{s.graduation_year || "—"}</b></div>;
+  }
   return (
     <label className="text-xs text-stone-500 flex items-center gap-1">
       سنة التخرج
@@ -174,7 +181,7 @@ function GraduationYearField({ s, updateStaffField }) {
   );
 }
 
-export function StaffDirectoryView({ staff, attachStaffFile, rateStaffMember, updateStaffField }) {
+export function StaffDirectoryView({ isAdmin, staff, attachStaffFile, rateStaffMember, updateStaffField }) {
   const [selectedId, setSelectedId] = useState(null);
   const selected = staff.find((s) => s.id === selectedId);
 
@@ -203,13 +210,13 @@ export function StaffDirectoryView({ staff, attachStaffFile, rateStaffMember, up
             <div key={s.id} className="bg-white border border-stone-200 rounded-lg p-4">
               <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
                 <div className="flex items-start gap-3">
-                  <StaffPhoto path={s.photo_path} inputId={`staff-photo-${s.id}`} onUpload={(file) => attachStaffFile(s.id, s.project_id, file, "photo_path")} />
+                  <StaffPhoto path={s.photo_path} inputId={`staff-photo-${s.id}`} onUpload={isAdmin ? (file) => attachStaffFile(s.id, s.project_id, file, "photo_path") : undefined} />
                   <div>
                     <div className="font-bold text-base" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>{s.name} <span className="text-xs text-stone-400 font-normal">— {s.role}</span></div>
                     <div className="text-xs text-stone-500 flex items-center gap-1 mt-1">
                       <Briefcase className="w-3 h-3" /> {s.projects?.name || "بدون مشروع"}
                     </div>
-                    <div className="mt-1"><GraduationYearField s={s} updateStaffField={updateStaffField} /></div>
+                    <div className="mt-1"><GraduationYearField s={s} updateStaffField={updateStaffField} isAdmin={isAdmin} /></div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -241,17 +248,17 @@ export function StaffDirectoryView({ staff, attachStaffFile, rateStaffMember, up
 
               <div className={`rounded-lg p-2.5 flex items-center justify-between flex-wrap gap-2 mb-3 ${perf.color}`}>
                 <span className="text-xs font-bold">التقييم الفني: {perf.label}</span>
-                <StarRating rating={s.rating || 0} onRate={(n) => rateStaffMember(s.id, n)} />
+                <StarRating rating={s.rating || 0} onRate={(n) => rateStaffMember(s.id, n)} readOnly={!isAdmin} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="border border-stone-200 rounded-lg p-2 flex items-center justify-between gap-2">
                   <span className="text-xs text-stone-600 font-bold">المستندات الشخصية</span>
-                  <AttachmentCell path={s.documents_path} canEdit inputId={`staff-doc-${s.id}`} onUpload={(file) => attachStaffFile(s.id, s.project_id, file, "documents_path")} />
+                  <AttachmentCell path={s.documents_path} canEdit={isAdmin} inputId={`staff-doc-${s.id}`} onUpload={(file) => attachStaffFile(s.id, s.project_id, file, "documents_path")} />
                 </div>
                 <div className="border border-stone-200 rounded-lg p-2 flex items-center justify-between gap-2">
                   <span className="text-xs text-stone-600 font-bold">العقد</span>
-                  <AttachmentCell path={s.contract_path} canEdit inputId={`staff-contract-${s.id}`} onUpload={(file) => attachStaffFile(s.id, s.project_id, file, "contract_path")} />
+                  <AttachmentCell path={s.contract_path} canEdit={isAdmin} inputId={`staff-contract-${s.id}`} onUpload={(file) => attachStaffFile(s.id, s.project_id, file, "contract_path")} />
                 </div>
               </div>
             </div>
