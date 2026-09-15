@@ -8,6 +8,7 @@ export function CompanyView({ companyFinancials }) {
   const companyExpenses = companyFinancials.reduce((a, f) => a + f.expenses, 0);
   const companyRevenue = companyFinancials.reduce((a, f) => a + f.revenue, 0);
   const companyProfit = companyRevenue - companyExpenses;
+  const companyPendingBilling = companyFinancials.reduce((a, f) => a + (f.pendingBilling || 0), 0);
   const companyMax = Math.max(1, ...companyFinancials.map((f) => Math.max(f.expenses, f.revenue)));
 
   return (
@@ -51,6 +52,11 @@ export function CompanyView({ companyFinancials }) {
                   </div>
                 </div>
               </div>
+              {f.pendingBilling > 0 && (
+                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-stone-700">
+                  أعمال منتهية ولم تُفوتر بعد بقيمة <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{f.pendingBilling.toLocaleString()}</b> ر.س — ممكن ترفع الإيرادات الفعلية لما تتحصّل.
+                </div>
+              )}
             </div>
           );
         })}
@@ -74,6 +80,11 @@ export function CompanyView({ companyFinancials }) {
             </div>
           </div>
         </div>
+        {companyPendingBilling > 0 && (
+          <div className="mt-4 bg-white/70 border border-white rounded-lg p-3 text-xs text-stone-700">
+            فيه أعمال منتهية ولم تُفوتر بعد بقيمة <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{companyPendingBilling.toLocaleString()}</b> ر.س في كل المشروعات مجتمعة — لسه محتسبة، ممكن ترفع الإيرادات والربح الفعلي لما تتحصّل بمستخلص.
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-stone-200 rounded-lg p-4">
