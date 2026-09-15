@@ -34,7 +34,7 @@ export async function POST(request) {
   const { action } = body;
 
   if (action === "create") {
-    const { name, email, kind, treasuryAccess, editAccess, reportsAccess } = body;
+    const { name, email, phone, kind, treasuryAccess, editAccess, reportsAccess } = body;
     if (!name?.trim() || !email?.trim()) {
       return NextResponse.json({ error: "الاسم والبريد الإلكتروني مطلوبان" }, { status: 400 });
     }
@@ -46,6 +46,8 @@ export async function POST(request) {
       id: invited.user.id,
       name: name.trim(),
       kind,
+      email: email.trim(),
+      phone: phone?.trim() || null,
       treasury_access: !!treasuryAccess,
       edit_access: !!editAccess,
       reports_access: !!reportsAccess,
