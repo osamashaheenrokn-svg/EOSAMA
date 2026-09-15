@@ -175,6 +175,12 @@ export function Dashboard({ profile, userEmail }) {
   const canSeeTreasury = isAdmin || profile.treasury_access;
   const canEditDelete = isAdmin || profile.edit_access;
   const canViewAllFinance = isAdmin || profile.reports_access;
+  const hasMore = (key) => isAdmin || (profile.more_access || []).includes(key);
+  const canSeeCompanyOverview = canSeeTreasury || hasMore("company");
+  const canSeeNeeds = canSeeTreasury || hasMore("needs");
+  const canSeeCompare = isAdmin || canViewAllFinance || hasMore("compare");
+  const canSeeAssets = isAdmin || canViewAllFinance || hasMore("assets");
+  const canSeeStaffDirectory = isAdmin || hasMore("staffDirectory");
 
   useEffect(() => {
     if (!canSeeTreasury) return;
@@ -194,14 +200,14 @@ export function Dashboard({ profile, userEmail }) {
   }, [supabase]);
 
   useEffect(() => {
-    if (!(isAdmin && view === "staffDirectory")) return;
+    if (!(canSeeStaffDirectory && view === "staffDirectory")) return;
     reloadAllStaff();
-  }, [isAdmin, view, reloadAllStaff]);
+  }, [canSeeStaffDirectory, view, reloadAllStaff]);
 
   useEffect(() => {
-    if (!canViewAllFinance) return;
+    if (!(canViewAllFinance || (canSeeAssets && view === "assets"))) return;
     (async () => { await reloadCompanyAssets(); })();
-  }, [canViewAllFinance, reloadCompanyAssets]);
+  }, [canViewAllFinance, canSeeAssets, view, reloadCompanyAssets]);
 
   useEffect(() => {
     if (!(isAdmin && view === "approvals")) return;
@@ -209,9 +215,9 @@ export function Dashboard({ profile, userEmail }) {
   }, [isAdmin, view, reloadPendingApprovals]);
 
   useEffect(() => {
-    if (!(isAdmin && view === "assets")) return;
+    if (!(canSeeAssets && view === "assets")) return;
     (async () => { await reloadCompanyTools(); })();
-  }, [isAdmin, view, reloadCompanyTools]);
+  }, [canSeeAssets, view, reloadCompanyTools]);
 
   useEffect(() => {
     if (!(isAdmin && view === "leads")) return;
@@ -831,6 +837,14 @@ export function Dashboard({ profile, userEmail }) {
     reloadRoster();
   }
 
+  async function toggleUserMoreAccess(userId, key, checked) {
+    const user = roster.find((r) => r.id === userId);
+    const current = user?.more_access || [];
+    const next = checked ? [...new Set([...current, key])] : current.filter((k) => k !== key);
+    await supabase.from("profiles").update({ more_access: next }).eq("id", userId);
+    reloadRoster();
+  }
+
   // ---------------- treasury ----------------
   async function setTreasuryField(key, value) {
     await supabase.from("treasury").update({ [key]: value === "" ? 0 : Number(value) }).eq("id", 1);
@@ -999,17 +1013,17 @@ export function Dashboard({ profile, userEmail }) {
           <MoreMenu
             view={view} setView={setView} show={showMoreMenu} setShow={setShowMoreMenu}
             items={[
-              canSeeTreasury && { id: "company", icon: BarChart3, label: "نظرة عامة على المشروعات" },
-              canSeeTreasury && { id: "needs", icon: AlertTriangle, label: "المطلوب لكل موقع" },
+              canSeeCompanyOverview && { id: "company", icon: BarChart3, label: "نظرة عامة على المشروعات" },
+              canSeeNeeds && { id: "needs", icon: AlertTriangle, label: "المطلوب لكل موقع" },
               isAdmin && { id: "users", icon: UserCog, label: "إدارة المستخدمين" },
               isAdmin && { id: "audit", icon: History, label: "سجل الأرقام" },
               isAdmin && { id: "periodic", icon: Send, label: "التقارير الدورية" },
-              (isAdmin || canViewAllFinance) && { id: "compare", icon: BarChart3, label: "مقارنة المشروعات" },
+              canSeeCompare && { id: "compare", icon: BarChart3, label: "مقارنة المشروعات" },
               isAdmin && { id: "approvals", icon: ShieldAlert, label: "طلبات الموافقة", badge: pendingApprovals.length },
               isAdmin && { id: "leads", icon: UserPlus, label: "عملاء محتملون" },
               { id: "map", icon: MapPin, label: "خريطة المشروعات" },
-              isAdmin && { id: "assets", icon: ClipboardCheck, label: "أصول الشركة" },
-              isAdmin && { id: "staffDirectory", icon: Contact, label: "تقارير العمالة والأطقم الفنية" },
+              canSeeAssets && { id: "assets", icon: ClipboardCheck, label: "أصول الشركة" },
+              canSeeStaffDirectory && { id: "staffDirectory", icon: Contact, label: "تقارير العمالة والأطقم الفنية" },
             ].filter(Boolean)}
           />
           <button onClick={() => setLang((l) => (l === "ar" ? "en" : "ar"))} className="text-sm px-3 py-2 rounded flex items-center gap-1.5 bg-slate-800 text-stone-200" title="Toggle language">
@@ -1050,11 +1064,11 @@ export function Dashboard({ profile, userEmail }) {
 
       <ProjectDeleteModal project={projectToDelete} onConfirm={deleteProject} onClose={() => setProjectToDelete(null)} />
 
-      {view === "company" && canSeeTreasury && (
+      {view === "company" && canSeeCompanyOverview && (
         <CompanyView companyFinancials={companyFinancials} />
       )}
 
-      {view === "needs" && canSeeTreasury && (
+      {view === "needs" && canSeeNeeds && (
         <NeedsView companyFinancials={companyFinancials} />
       )}
 
@@ -1066,14 +1080,14 @@ export function Dashboard({ profile, userEmail }) {
           newDeposit={newDeposit} setNewDeposit={setNewDeposit} addDeposit={addDeposit} deleteDeposit={deleteDeposit}
           newWithdrawal={newWithdrawal} setNewWithdrawal={setNewWithdrawal} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal}
           attachTreasuryFile={attachTreasuryFile}
-          grantableRoster={grantableRoster} setUserFlag={setUserFlag}
+          grantableRoster={grantableRoster} setUserFlag={setUserFlag} toggleUserMoreAccess={toggleUserMoreAccess}
           setTreasuryTextField={setTreasuryTextField} setView={setView}
           overdueCustodyTotal={overdueCustodyTotal} overdueLaborTotal={overdueLaborTotal}
           overdueSubcontractorsTotal={overdueSubcontractorsTotal} totalOverdueAmounts={totalOverdueAmounts}
         />
       )}
 
-      {view === "compare" && (isAdmin || canViewAllFinance) && (
+      {view === "compare" && canSeeCompare && (
         <CompareView projects={projects} companyFinancials={companyFinancials} />
       )}
 
@@ -1093,16 +1107,17 @@ export function Dashboard({ profile, userEmail }) {
         <MapView projects={projects} isAdmin={isAdmin} getMembership={getMembership} profileId={profile.id} setProjectField={setProjectFieldFor} />
       )}
 
-      {view === "assets" && isAdmin && (
+      {view === "assets" && canSeeAssets && (
         <AssetsView
+          isAdmin={isAdmin}
           companyAssets={companyAssets} newAsset={newAsset} setNewAsset={setNewAsset} addAsset={addAsset}
           updateAssetField={updateAssetField} deleteAsset={deleteAsset} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument}
           companyTools={companyTools} newTool={newTool} setNewTool={setNewTool} addTool={addTool} updateToolField={updateToolField} deleteTool={deleteTool}
         />
       )}
 
-      {view === "staffDirectory" && isAdmin && (
-        <StaffDirectoryView staff={allStaff} attachStaffFile={attachStaffFile} rateStaffMember={rateStaffMember} updateStaffField={updateStaffField} />
+      {view === "staffDirectory" && canSeeStaffDirectory && (
+        <StaffDirectoryView isAdmin={isAdmin} staff={allStaff} attachStaffFile={attachStaffFile} rateStaffMember={rateStaffMember} updateStaffField={updateStaffField} />
       )}
 
       {view === "periodic" && isAdmin && companySettings && (
