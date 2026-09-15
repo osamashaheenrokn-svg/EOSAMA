@@ -92,8 +92,8 @@ export function Dashboard({ profile, userEmail }) {
   const [showArchived, setShowArchived] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [newProjectForm, setNewProjectForm] = useState({ name: "", location: "", duration: "", contractValue: "", engineerMode: "new", existingEngineerId: "", newEngineerName: "", newEngineerEmail: "" });
-  const [newStandaloneEngineer, setNewStandaloneEngineer] = useState({ name: "", email: "" });
-  const [newCustomUserForm, setNewCustomUserForm] = useState({ name: "", email: "", treasury: false, reports: false, edit: false });
+  const [newStandaloneEngineer, setNewStandaloneEngineer] = useState({ name: "", email: "", phone: "" });
+  const [newCustomUserForm, setNewCustomUserForm] = useState({ name: "", email: "", phone: "", treasury: false, reports: false, edit: false });
   const [reassignDrafts, setReassignDrafts] = useState({});
   const [teamDrafts, setTeamDrafts] = useState({});
   const [userActionError, setUserActionError] = useState("");
@@ -240,7 +240,6 @@ export function Dashboard({ profile, userEmail }) {
   const archivedProjects = projects.filter((p) => p.archived);
 
   const engineerRoster = roster.filter((r) => r.kind === "engineer");
-  const grantableRoster = roster.filter((r) => r.id !== profile.id);
 
   async function logAction(action) {
     await logActionDb(supabase, profile, action);
@@ -712,12 +711,12 @@ export function Dashboard({ profile, userEmail }) {
   }
 
   // ---------------- admin: projects / users / teams ----------------
-  async function createUserAccount({ name, email, kind, treasuryAccess, editAccess, reportsAccess }) {
+  async function createUserAccount({ name, email, phone, kind, treasuryAccess, editAccess, reportsAccess }) {
     setUserActionError("");
     const res = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create", name, email, kind, treasuryAccess, editAccess, reportsAccess }),
+      body: JSON.stringify({ action: "create", name, email, phone, kind, treasuryAccess, editAccess, reportsAccess }),
     });
     const body = await res.json();
     if (!res.ok) { setUserActionError(body.error || "تعذّر إنشاء المستخدم"); return null; }
@@ -793,19 +792,19 @@ export function Dashboard({ profile, userEmail }) {
 
   async function addStandaloneEngineer() {
     if (!newStandaloneEngineer.name.trim() || !newStandaloneEngineer.email.trim()) return;
-    await createUserAccount({ name: newStandaloneEngineer.name, email: newStandaloneEngineer.email, kind: "engineer" });
+    await createUserAccount({ name: newStandaloneEngineer.name, email: newStandaloneEngineer.email, phone: newStandaloneEngineer.phone, kind: "engineer" });
     logAction(`إضافة مهندس جديد "${newStandaloneEngineer.name.trim()}" (بدون مشروع بعد)`);
-    setNewStandaloneEngineer({ name: "", email: "" });
+    setNewStandaloneEngineer({ name: "", email: "", phone: "" });
   }
 
   async function addCustomUser() {
     if (!newCustomUserForm.name.trim() || !newCustomUserForm.email.trim()) return;
     await createUserAccount({
-      name: newCustomUserForm.name, email: newCustomUserForm.email, kind: "custom",
+      name: newCustomUserForm.name, email: newCustomUserForm.email, phone: newCustomUserForm.phone, kind: "custom",
       treasuryAccess: newCustomUserForm.treasury, editAccess: newCustomUserForm.edit, reportsAccess: newCustomUserForm.reports,
     });
     logAction(`إضافة مستخدم إضافي "${newCustomUserForm.name.trim()}"`);
-    setNewCustomUserForm({ name: "", email: "", treasury: false, reports: false, edit: false });
+    setNewCustomUserForm({ name: "", email: "", phone: "", treasury: false, reports: false, edit: false });
   }
 
   async function reassignProjectEngineer(projectId, engineerId) {
@@ -1046,7 +1045,7 @@ export function Dashboard({ profile, userEmail }) {
           newCustomUserForm={newCustomUserForm} setNewCustomUserForm={setNewCustomUserForm}
           addStandaloneEngineer={addStandaloneEngineer} addCustomUser={addCustomUser} deleteUser={deleteUser}
           reassignProjectEngineer={reassignProjectEngineer} addTeamMember={addTeamMember} removeTeamMember={removeTeamMember}
-          setUserFlag={setUserFlag} userActionError={userActionError}
+          setUserFlag={setUserFlag} toggleUserMoreAccess={toggleUserMoreAccess} userActionError={userActionError}
         />
       )}
 
@@ -1080,7 +1079,6 @@ export function Dashboard({ profile, userEmail }) {
           newDeposit={newDeposit} setNewDeposit={setNewDeposit} addDeposit={addDeposit} deleteDeposit={deleteDeposit}
           newWithdrawal={newWithdrawal} setNewWithdrawal={setNewWithdrawal} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal}
           attachTreasuryFile={attachTreasuryFile}
-          grantableRoster={grantableRoster} setUserFlag={setUserFlag} toggleUserMoreAccess={toggleUserMoreAccess}
           setTreasuryTextField={setTreasuryTextField} setView={setView}
           overdueCustodyTotal={overdueCustodyTotal} overdueLaborTotal={overdueLaborTotal}
           overdueSubcontractorsTotal={overdueSubcontractorsTotal} totalOverdueAmounts={totalOverdueAmounts}
