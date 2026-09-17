@@ -42,7 +42,7 @@ export function UpdatesTab({ active, isOwner, setProjectField, newUpdate, setNew
 
       <div className={`rounded-xl border p-4 mb-5 flex items-center gap-6 flex-wrap ${pc.bg} ${pc.border}`}>
         <svg width="110" height="110" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="#e7e5e4" strokeWidth="10" />
+          <circle cx="50" cy="50" r={r} fill="none" stroke="#dde5ec" strokeWidth="10" />
           <circle cx="50" cy="50" r={r} fill="none" stroke={pc.stroke} strokeWidth="10" strokeLinecap="round"
             strokeDasharray={`${dash} ${circumference}`} transform="rotate(-90 50 50)" />
           <text x="50" y="55" textAnchor="middle" fontSize="20" fontWeight="bold" fill={pc.stroke} style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{active.progress}%</text>
