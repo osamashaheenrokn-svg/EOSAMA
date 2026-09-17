@@ -1,4 +1,4 @@
-@import "tailwindcss";
+    @import "tailwindcss";
 
 :root {
   --background: #ffffff;
@@ -10,6 +10,43 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* هوية "المخطط الهندسي" — أزرق مخططات هندسية داكن + ذهبي، بدل الحياد الدافئ الافتراضي. */
+@theme {
+  --color-slate-50: #f3f7fb;
+  --color-slate-100: #e6eef5;
+  --color-slate-200: #cedcea;
+  --color-slate-300: #a9c1d8;
+  --color-slate-400: #7ca0c0;
+  --color-slate-500: #4e7196;
+  --color-slate-600: #2f5c82;
+  --color-slate-700: #234f70;
+  --color-slate-800: #1b4665;
+  --color-slate-900: #163a5c;
+  --color-slate-950: #0f2a44;
+
+  --color-amber-50: #fbf4e4;
+  --color-amber-100: #f6e8c9;
+  --color-amber-200: #eedaa3;
+  --color-amber-300: #e4c87a;
+  --color-amber-400: #ddba5f;
+  --color-amber-500: #d9ae4d;
+  --color-amber-600: #d9a441;
+  --color-amber-700: #b3853a;
+  --color-amber-800: #8c6830;
+  --color-amber-900: #6b4f26;
+
+  --color-stone-50: #f6f8fa;
+  --color-stone-100: #eef2f6;
+  --color-stone-200: #dde5ec;
+  --color-stone-300: #c7d2dc;
+  --color-stone-400: #a9b7c4;
+  --color-stone-500: #8695a5;
+  --color-stone-600: #5f6e7e;
+  --color-stone-700: #445261;
+  --color-stone-800: #2e3a47;
+  --color-stone-900: #1b242e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,3 +61,5 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+    
