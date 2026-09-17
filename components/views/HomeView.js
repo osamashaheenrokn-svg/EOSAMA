@@ -4,7 +4,7 @@ import { Building2, Plus, ChevronRight, Archive, ArchiveRestore, Trash2 } from "
 
 function progressColor(pct) {
   if (pct < 40) return { text: "text-rose-700", stroke: "#e11d48" };
-  if (pct < 75) return { text: "text-amber-600", stroke: "#d97706" };
+  if (pct < 75) return { text: "text-amber-600", stroke: "#d9a441" };
   return { text: "text-emerald-700", stroke: "#059669" };
 }
 
@@ -20,18 +20,18 @@ export function HomeView({
         <svg width="120" height="120" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="mb-4">
           <defs>
             <linearGradient id="peakGoldHome" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fbbf24" />
-              <stop offset="100%" stopColor="#d97706" />
+              <stop offset="0%" stopColor="#ddba5f" />
+              <stop offset="100%" stopColor="#d9a441" />
             </linearGradient>
           </defs>
-          <rect x="0" y="0" width="200" height="200" rx="32" fill="#0f172a" />
+          <rect x="0" y="0" width="200" height="200" rx="32" fill="#163a5c" />
           <g transform="translate(20,26)">
-            <rect x="0" y="128" width="160" height="8" rx="4" fill="#f5f5f4" />
-            <polygon points="8,128 28,86 48,128" fill="#f5f5f4" opacity="0.55" />
-            <polygon points="48,128 78,54 108,128" fill="#f5f5f4" opacity="0.8" />
+            <rect x="0" y="128" width="160" height="8" rx="4" fill="#eef2f6" />
+            <polygon points="8,128 28,86 48,128" fill="#eef2f6" opacity="0.55" />
+            <polygon points="48,128 78,54 108,128" fill="#eef2f6" opacity="0.8" />
             <polygon points="108,128 138,20 168,128" fill="url(#peakGoldHome)" />
-            <circle cx="138" cy="20" r="6" fill="#0f172a" />
-            <line x1="138" y1="20" x2="138" y2="4" stroke="#f5f5f4" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="138" cy="20" r="6" fill="#163a5c" />
+            <line x1="138" y1="20" x2="138" y2="4" stroke="#eef2f6" strokeWidth="3" strokeLinecap="round" />
           </g>
         </svg>
         <h1 className="text-3xl font-extrabold mb-1" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>شركة قمة الحضارة للمقاولات</h1>
