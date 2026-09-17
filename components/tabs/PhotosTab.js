@@ -3,26 +3,17 @@
 import { useEffect, useState } from "react";
 import { Camera, Image as ImageIcon, Pencil, Trash2, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { getSignedUrl } from "@/lib/attachments";
+import { getSignedUrls } from "@/lib/attachments";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 
-function Photo({ photo }) {
-  const [url, setUrl] = useState(null);
-  useEffect(() => {
-    let active = true;
-    if (photo.attachment_path) {
-      getSignedUrl(createClient(), photo.attachment_path).then((u) => { if (active) setUrl(u); }).catch(() => {});
-    }
-    return () => { active = false; };
-  }, [photo.attachment_path]);
-
+function Photo({ url, caption }) {
   if (!url) return <div className="h-40 bg-stone-200 flex items-center justify-center"><ImageIcon className="w-8 h-8 text-stone-400" /></div>;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt={photo.caption} className="w-full h-40 object-cover" />;
+  return <img src={url} alt={caption} loading="lazy" decoding="async" className="w-full h-40 object-cover" />;
 }
 
-function PhotoCard({ photo, isOwner, updatePhotoCaption, deletePhoto }) {
+function PhotoCard({ photo, url, isOwner, updatePhotoCaption, deletePhoto }) {
   const [editing, setEditing] = useState(false);
   const [caption, setCaption] = useState(photo.caption || "");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -34,7 +25,7 @@ function PhotoCard({ photo, isOwner, updatePhotoCaption, deletePhoto }) {
 
   return (
     <div className="bg-white border border-stone-200 rounded-lg overflow-hidden">
-      <Photo photo={photo} />
+      <Photo url={url} caption={photo.caption} />
       <div className="p-2">
         {editing ? (
           <div className="flex items-center gap-1">
@@ -80,6 +71,15 @@ function PhotoCard({ photo, isOwner, updatePhotoCaption, deletePhoto }) {
 }
 
 export function PhotosTab({ active, isOwner, newPhotoCaption, setNewPhotoCaption, addPhoto, photos, updatePhotoCaption, deletePhoto }) {
+  const [urlMap, setUrlMap] = useState({});
+
+  useEffect(() => {
+    const paths = photos.map((p) => p.attachment_path);
+    let isActive = true;
+    getSignedUrls(createClient(), paths).then((map) => { if (isActive) setUrlMap(map); }).catch(() => {});
+    return () => { isActive = false; };
+  }, [photos]);
+
   return (
     <div className="print-area">
       <PrintHeader title={`التقرير المصور — ${active.name}`} />
@@ -96,7 +96,7 @@ export function PhotosTab({ active, isOwner, newPhotoCaption, setNewPhotoCaption
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 no-print">
         {photos.length === 0 && <div className="text-stone-400 text-sm col-span-3">لا توجد صور بعد.</div>}
         {photos.map((ph) => (
-          <PhotoCard key={ph.id} photo={ph} isOwner={isOwner} updatePhotoCaption={updatePhotoCaption} deletePhoto={deletePhoto} />
+          <PhotoCard key={ph.id} photo={ph} url={urlMap[ph.attachment_path]} isOwner={isOwner} updatePhotoCaption={updatePhotoCaption} deletePhoto={deletePhoto} />
         ))}
       </div>
 
@@ -105,7 +105,7 @@ export function PhotosTab({ active, isOwner, newPhotoCaption, setNewPhotoCaption
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
           {photos.slice(0, 8).map((ph) => (
             <div key={ph.id} className="border border-stone-300 rounded overflow-hidden">
-              <Photo photo={ph} />
+              <Photo url={urlMap[ph.attachment_path]} caption={ph.caption} />
               <div className="p-1 text-xs text-stone-600">{ph.caption || "بدون وصف"}</div>
             </div>
           ))}
