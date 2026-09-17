@@ -16,7 +16,7 @@ import {
   staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey, proratedSalaryForMonth,
   sumClaimsVat,
 } from "@/lib/db";
-import { uploadAttachment } from "@/lib/attachments";
+import { uploadAttachment, compressImageFile } from "@/lib/attachments";
 import { HomeView } from "./views/HomeView";
 import { ProjectDeleteModal } from "./ProjectDeleteModal";
 import { UsersView } from "./views/UsersView";
@@ -327,7 +327,8 @@ export function Dashboard({ profile, userEmail }) {
 
   async function addPhoto(file) {
     if (!file) return;
-    const path = await uploadAttachment(supabase, activeId, file);
+    const compressed = await compressImageFile(file);
+    const path = await uploadAttachment(supabase, activeId, compressed);
     await supabase.from("photos").insert({ project_id: activeId, caption: newPhotoCaption.trim(), attachment_path: path });
     setNewPhotoCaption("");
     reloadDetail(activeId);
