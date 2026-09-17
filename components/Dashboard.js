@@ -67,7 +67,7 @@ const KIND_LABELS = { admin: "المدير", engineer: "مهندس", custom: "م
 
 function progressColor(pct) {
   if (pct < 40) return { text: "text-rose-700", stroke: "#e11d48", bg: "bg-rose-50", border: "border-rose-200" };
-  if (pct < 75) return { text: "text-amber-600", stroke: "#d97706", bg: "bg-amber-50", border: "border-amber-200" };
+  if (pct < 75) return { text: "text-amber-600", stroke: "#d9a441", bg: "bg-amber-50", border: "border-amber-200" };
   return { text: "text-emerald-700", stroke: "#059669", bg: "bg-emerald-50", border: "border-emerald-200" };
 }
 
@@ -975,18 +975,18 @@ export function Dashboard({ profile, userEmail }) {
           <svg width="56" height="56" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="peakGoldHeader" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#fbbf24" />
-                <stop offset="100%" stopColor="#d97706" />
+                <stop offset="0%" stopColor="#ddba5f" />
+                <stop offset="100%" stopColor="#d9a441" />
               </linearGradient>
             </defs>
-            <rect x="0" y="0" width="200" height="200" rx="28" fill="#1e293b" />
+            <rect x="0" y="0" width="200" height="200" rx="28" fill="#163a5c" />
             <g transform="translate(20,26)">
-              <rect x="0" y="128" width="160" height="8" rx="4" fill="#f5f5f4" />
-              <polygon points="8,128 28,86 48,128" fill="#f5f5f4" opacity="0.55" />
-              <polygon points="48,128 78,54 108,128" fill="#f5f5f4" opacity="0.8" />
+              <rect x="0" y="128" width="160" height="8" rx="4" fill="#eef2f6" />
+              <polygon points="8,128 28,86 48,128" fill="#eef2f6" opacity="0.55" />
+              <polygon points="48,128 78,54 108,128" fill="#eef2f6" opacity="0.8" />
               <polygon points="108,128 138,20 168,128" fill="url(#peakGoldHeader)" />
-              <circle cx="138" cy="20" r="6" fill="#1e293b" />
-              <line x1="138" y1="20" x2="138" y2="4" stroke="#f5f5f4" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="138" cy="20" r="6" fill="#163a5c" />
+              <line x1="138" y1="20" x2="138" y2="4" stroke="#eef2f6" strokeWidth="3" strokeLinecap="round" />
             </g>
           </svg>
           <div>
