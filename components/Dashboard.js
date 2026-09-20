@@ -7,12 +7,12 @@ import {
   Camera, Wallet, Lock, Plus, ChevronLeft,
   Users, Vault, BarChart3, AlertTriangle, Printer,
   Home, HardHat as SubIcon, FileSpreadsheet, UserCog, LogOut,
-  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus, Receipt, X, Contact,
+  History, CalendarClock, FolderOpen, ClipboardCheck, Send, MapPin, Globe, ShieldAlert, UserPlus, Receipt, X, Contact, FileText,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchProfiles, fetchProjects, fetchAllTeams, fetchTreasury, fetchProjectDetail, fetchCompanyFinancials, fetchAllStaff, sum,
-  fetchCompanySettings, fetchPendingApprovals, fetchCompanyAssets, fetchCompanyTools, fetchLeads, fetchAuditLog, logAction as logActionDb, daysUntil,
+  fetchCompanySettings, fetchPendingApprovals, fetchCompanyAssets, fetchCompanyTools, fetchLeads, fetchQuotations, fetchAuditLog, logAction as logActionDb, daysUntil,
   staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey, proratedSalaryForMonth,
   sumClaimsVat,
 } from "@/lib/db";
@@ -26,6 +26,7 @@ import { TreasuryView } from "./views/TreasuryView";
 import { AuditView } from "./views/AuditView";
 import { ApprovalsView } from "./views/ApprovalsView";
 import { LeadsView } from "./views/LeadsView";
+import { QuotationsView } from "./views/QuotationsView";
 import { MapView } from "./views/MapView";
 import { AssetsView } from "./views/AssetsView";
 import { PeriodicView } from "./views/PeriodicView";
@@ -125,6 +126,7 @@ export function Dashboard({ profile, userEmail }) {
   const [companyAssets, setCompanyAssets] = useState([]);
   const [companyTools, setCompanyTools] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [quotations, setQuotations] = useState([]);
   const [newAsset, setNewAsset] = useState({ type: "", number: "", yearMade: "", licenseExpiry: "", insuranceExpiry: "" });
   const [newTool, setNewTool] = useState({ type: "", quantity: "", unit: "" });
   const [newLead, setNewLead] = useState({ name: "", phone: "", notes: "" });
@@ -144,6 +146,7 @@ export function Dashboard({ profile, userEmail }) {
   const reloadCompanyAssets = useCallback(async () => setCompanyAssets(await fetchCompanyAssets(supabase)), [supabase]);
   const reloadCompanyTools = useCallback(async () => setCompanyTools(await fetchCompanyTools(supabase)), [supabase]);
   const reloadLeads = useCallback(async () => setLeads(await fetchLeads(supabase)), [supabase]);
+  const reloadQuotations = useCallback(async () => setQuotations(await fetchQuotations(supabase)), [supabase]);
   const reloadAuditLog = useCallback(async () => setAuditLog(await fetchAuditLog(supabase)), [supabase]);
 
   useEffect(() => {
@@ -223,6 +226,11 @@ export function Dashboard({ profile, userEmail }) {
     if (!(isAdmin && view === "leads")) return;
     (async () => { await reloadLeads(); })();
   }, [isAdmin, view, reloadLeads]);
+
+  useEffect(() => {
+    if (!(isAdmin && view === "quotations")) return;
+    (async () => { await reloadQuotations(); })();
+  }, [isAdmin, view, reloadQuotations]);
 
   useEffect(() => {
     if (!(isAdmin && view === "audit")) return;
@@ -711,6 +719,43 @@ export function Dashboard({ profile, userEmail }) {
     setShowAddProject(true);
   }
 
+  // ---------------- quotations ----------------
+  async function saveQuotation(sheet) {
+    const payload = {
+      client_name: sheet.client_name.trim(),
+      subject: sheet.subject.trim(),
+      quote_date: sheet.quote_date.trim(),
+      items: sheet.items,
+      terms: sheet.terms,
+    };
+    try {
+      if (sheet.id) {
+        const { error } = await supabase.from("quotations").update(payload).eq("id", sheet.id);
+        if (error) throw error;
+        await reloadQuotations();
+        return sheet.id;
+      }
+      const { data, error } = await supabase.from("quotations").insert({ ...payload, created_by: profile.id }).select("id").single();
+      if (error) throw error;
+      logAction(`إنشاء عرض سعر جديد — ${payload.client_name || "بدون اسم عميل"}`);
+      await reloadQuotations();
+      return data.id;
+    } catch {
+      setSaveError("تعذّر حفظ عرض السعر. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+      return null;
+    }
+  }
+  async function deleteQuotation(quotationId) {
+    try {
+      const { error } = await supabase.from("quotations").delete().eq("id", quotationId);
+      if (error) throw error;
+      logAction("حذف عرض سعر");
+      await reloadQuotations();
+    } catch {
+      setSaveError("تعذّر الحذف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+    }
+  }
+
   // ---------------- admin: projects / users / teams ----------------
   async function createUserAccount({ name, email, phone, kind, treasuryAccess, editAccess, reportsAccess }) {
     setUserActionError("");
@@ -1021,6 +1066,7 @@ export function Dashboard({ profile, userEmail }) {
               canSeeCompare && { id: "compare", icon: BarChart3, label: "مقارنة المشروعات" },
               isAdmin && { id: "approvals", icon: ShieldAlert, label: "طلبات الموافقة", badge: pendingApprovals.length },
               isAdmin && { id: "leads", icon: UserPlus, label: "عملاء محتملون" },
+              isAdmin && { id: "quotations", icon: FileText, label: "عروض الأسعار" },
               { id: "map", icon: MapPin, label: "خريطة المشروعات" },
               canSeeAssets && { id: "assets", icon: ClipboardCheck, label: "أصول الشركة" },
               canSeeStaffDirectory && { id: "staffDirectory", icon: Contact, label: "تقارير العمالة والأطقم الفنية" },
@@ -1100,6 +1146,10 @@ export function Dashboard({ profile, userEmail }) {
 
       {view === "leads" && isAdmin && (
         <LeadsView leads={leads} newLead={newLead} setNewLead={setNewLead} addLead={addLead} setLeadStatus={setLeadStatus} convertLeadToProject={convertLeadToProject} />
+      )}
+
+      {view === "quotations" && isAdmin && (
+        <QuotationsView quotations={quotations} saveQuotation={saveQuotation} deleteQuotation={deleteQuotation} />
       )}
 
       {view === "map" && (
