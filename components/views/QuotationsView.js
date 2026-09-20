@@ -109,17 +109,25 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
         .qs-field:focus { outline: none; background: #fbf4e4; }
       `}</style>
 
-      <div className="print-area bg-white border border-stone-200 rounded-lg p-6" dir="rtl">
+      <div className="print-area bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden" dir="rtl">
+        <div className="h-2 bg-gradient-to-l from-amber-400 via-amber-500 to-slate-900" />
+        <div className="p-6">
         <div className="flex items-start justify-between gap-4 pb-4 mb-4 border-b-2 border-slate-900">
-          <div className="text-center text-slate-900 w-32">
-            <div className="italic font-bold text-sm leading-tight">Kemet alhadara Contracting Company</div>
-            <div className="text-[11px] mt-1">C.R: 1010845476</div>
-          </div>
-          <div className="w-16 h-16 shrink-0 rounded-full border-2 border-slate-900 flex items-center justify-center font-extrabold text-slate-900">K.A</div>
           <div className="text-center w-32" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
             <div className="font-extrabold text-sm leading-tight">شركة قمة الحضارة للمقاولات</div>
             <div className="text-[11px] mt-1" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>س.ت : ١٠١٠٨٤٥٤٧٦</div>
           </div>
+          <div className="w-16 h-16 shrink-0 rounded-full border-2 border-slate-900 flex items-center justify-center font-extrabold text-slate-900">K.A</div>
+          <div className="text-center text-slate-900 w-32">
+            <div className="italic font-bold text-sm leading-tight">Kemet alhadara Contracting Company</div>
+            <div className="text-[11px] mt-1">C.R: 1010845476</div>
+          </div>
+        </div>
+
+        <div className="flex justify-center mb-5">
+          <span className="inline-block bg-amber-50 text-amber-800 border border-amber-300 rounded-full px-5 py-1 text-xs font-extrabold tracking-wide" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
+            عرض سعر
+          </span>
         </div>
 
         <div className="flex justify-end mb-4 text-sm">
@@ -132,8 +140,8 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
         <div className="flex items-baseline justify-end gap-1 mb-2 text-sm">
           <span className="font-bold shrink-0">السادة /</span>
           <input
-            className="qs-field font-bold"
-            style={{ width: `${Math.max(16, sheet.client_name.length + 2)}ch`, maxWidth: "60%" }}
+            className="qs-field font-bold text-right"
+            style={{ width: `${(sheet.client_name.length || 20) + 1}ch`, maxWidth: "60%" }}
             placeholder="اسم العميل أو الجهة"
             value={sheet.client_name}
             onChange={(e) => updateField("client_name", e.target.value)}
@@ -149,9 +157,9 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           onChange={(e) => updateField("subject", e.target.value)}
         />
 
-        <table className="w-full border-collapse border border-slate-900 text-sm mb-2">
+        <table className="w-full border-collapse border border-slate-900 text-sm mb-2 overflow-hidden rounded-lg">
           <thead>
-            <tr className="bg-stone-100">
+            <tr className="bg-slate-900 text-white">
               <th className="border border-slate-900 p-2 w-10">م</th>
               <th className="border border-slate-900 p-2">البيان</th>
               <th className="border border-slate-900 p-2 w-24">الوحدة</th>
@@ -161,7 +169,7 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           </thead>
           <tbody>
             {sheet.items.map((it, i) => (
-              <tr key={i}>
+              <tr key={i} className={i % 2 === 1 ? "bg-stone-50" : ""}>
                 <td className="border border-slate-900 p-2 text-center align-top">{i + 1}</td>
                 <td className="border border-slate-900 p-2 align-top">
                   <textarea className="qs-field" rows={2} value={it.description} onChange={(e) => updateItem(i, "description", e.target.value)} />
@@ -170,7 +178,7 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
                   <input className="qs-field text-center" value={it.unit} onChange={(e) => updateItem(i, "unit", e.target.value)} />
                 </td>
                 <td className="border border-slate-900 p-2 align-top" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
-                  <input className="qs-field text-center" value={it.price} onChange={(e) => updateItem(i, "price", e.target.value)} />
+                  <input className="qs-field text-center font-bold text-amber-800" value={it.price} onChange={(e) => updateItem(i, "price", e.target.value)} />
                 </td>
                 <td className="no-print p-1 text-center align-top">
                   <button onClick={() => removeItem(i)} className="text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -183,21 +191,27 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           <Plus className="w-3.5 h-3.5" /> إضافة بند
         </button>
 
-        <textarea
-          className="qs-field font-bold text-sm leading-7 mb-10"
-          rows={6}
-          placeholder="الشروط والملاحظات..."
-          value={sheet.terms}
-          onChange={(e) => updateField("terms", e.target.value)}
-        />
-
-        <div className="mb-8">
-          <div className="font-bold text-sm mb-14">شركة قمة الحضاره للمقاولات</div>
+        <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 mb-10">
+          <div className="text-[11px] font-bold text-stone-500 mb-2">الشروط والملاحظات</div>
+          <textarea
+            className="qs-field font-bold text-sm leading-7"
+            rows={6}
+            placeholder="الشروط والملاحظات..."
+            value={sheet.terms}
+            onChange={(e) => updateField("terms", e.target.value)}
+          />
         </div>
 
-        <div className="text-center text-[10px] text-stone-500 border-t border-stone-300 pt-2 leading-5">
+        <div className="mb-8 text-left">
+          <div className="font-bold text-sm mb-1">شركة قمة الحضاره للمقاولات</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/company-stamp.png" alt="ختم الشركة" className="h-20 w-auto" />
+        </div>
+
+        <div className="text-center text-[10px] text-stone-500 border-t-2 border-amber-400 pt-2 leading-5">
           <div>س.ت : ١٠١٠٨٤٥٤٧٦ — ٤٧٦٠٩١١ - ٤٧٦٠٩٧٧ — فاكس : ٢٩١٧٣٩٤ — ص.ب : ٥٠٠٦٥ الرياض ١١٥٢٣ — رقم إشتراك الغرفة ٢٦٥٤٢</div>
           <div className="italic">C.R: 1010845476 - Tel: 4760911 - 4790612 - Fax: 2917394 - P.O.Box 50065 . Riyadh 11523 - C.C. No. 26542</div>
+        </div>
         </div>
       </div>
     </div>
