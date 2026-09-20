@@ -205,7 +205,7 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
         <div className="mb-8 text-left">
           <div className="font-bold text-sm mb-1">شركة قمة الحضاره للمقاولات</div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/company-stamp.png" alt="ختم الشركة" className="h-20 w-auto" />
+          <img src="/company-stamp.png" alt="ختم الشركة" className="h-20 w-auto inline-block" />
         </div>
 
         <div className="text-center text-[10px] text-stone-500 border-t-2 border-amber-400 pt-2 leading-5">
