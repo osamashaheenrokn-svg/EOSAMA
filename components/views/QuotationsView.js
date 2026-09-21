@@ -1,53 +1,3 @@
-"use client";
-
-import { useState } from "react";
-import { FileText, Plus, Trash2, FolderOpen, Copy } from "lucide-react";
-import { PrintButton } from "../PrintButton";
-
-const DEFAULT_TERMS = [
-  "أعمال الحفر والردم والسند والأعمال المساحية هي مسؤولية الطرف الأول",
-  "توفير الكرين هي مسؤولية الطرف الأول، وفي حالة طلب الطرف الأول توفير الكرين يتم زيادة السعر 30 ريال لكل 1م3",
-  "الأسعار تشمل أعمال الحدادة والنجارة والصب والمصنعيات شامل العدة اللازمة",
-  "الأسعار لا تشمل توريد أي مواد، جميع المواد مسؤولية الطرف الأول",
-  "الأسعار لا تشمل ضريبة القيمة المضافة",
-].join("\n");
-
-function todayPlain() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-function blankSheet() {
-  return {
-    id: null,
-    client_name: "",
-    subject: "",
-    quote_date: todayPlain(),
-    items: [{ description: "", unit: "", price: "" }],
-    terms: DEFAULT_TERMS,
-  };
-}
-
-export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
-  const [sheet, setSheet] = useState(blankSheet());
-  const [saving, setSaving] = useState(false);
-
-  function updateField(field, value) {
-    setSheet((s) => ({ ...s, [field]: value }));
-  }
-  function updateItem(i, field, value) {
-    setSheet((s) => ({ ...s, items: s.items.map((it, idx) => (idx === i ? { ...it, [field]: value } : it)) }));
-  }
-  function addItem() {
-    setSheet((s) => ({ ...s, items: [...s.items, { description: "", unit: "", price: "" }] }));
-  }
-  function removeItem(i) {
-    setSheet((s) => ({ ...s, items: s.items.filter((_, idx) => idx !== i) }));
-  }
-  function loadQuotation(q, asCopy) {
-    setSheet({
-      id: asCopy ? null : q.id,
-      client_name: q.client_name || "",
       subject: q.subject || "",
       quote_date: asCopy ? todayPlain() : (q.quote_date || todayPlain()),
       items: q.items?.length ? q.items : [{ description: "", unit: "", price: "" }],
@@ -130,14 +80,14 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           </span>
         </div>
 
-        <div className="flex justify-end mb-4 text-sm">
+        <div className="flex justify-start mb-4 text-sm">
           <label className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-stone-500 shrink-0">التاريخ :</span>
             <input className="qs-field font-bold w-28" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} value={sheet.quote_date} onChange={(e) => updateField("quote_date", e.target.value)} />
           </label>
         </div>
 
-        <div className="flex items-baseline justify-end gap-1 mb-2 text-sm">
+        <div className="flex items-baseline justify-start gap-1 mb-2 text-sm">
           <span className="font-bold shrink-0">السادة /</span>
           <input
             className="qs-field font-bold text-right"
