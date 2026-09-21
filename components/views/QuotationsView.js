@@ -109,9 +109,9 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
         .qs-field:focus { outline: none; background: #fbf4e4; }
       `}</style>
 
-      <div className="print-area bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden" dir="rtl">
-        <div className="h-2 bg-gradient-to-l from-amber-400 via-amber-500 to-slate-900" />
-        <div className="p-6">
+      <div className="print-area flex flex-col bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden" dir="rtl">
+        <div className="h-2 shrink-0 bg-gradient-to-l from-amber-400 via-amber-500 to-slate-900" />
+        <div className="p-6 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-4 pb-4 mb-4 border-b-2 border-slate-900">
           <div className="text-center w-32" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
             <div className="font-extrabold text-sm leading-tight">شركة قمة الحضارة للمقاولات</div>
@@ -208,7 +208,7 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           <img src="/company-stamp.png" alt="ختم الشركة" className="h-20 w-auto inline-block" />
         </div>
 
-        <div className="text-center text-[10px] text-stone-500 border-t-2 border-amber-400 pt-2 leading-5">
+        <div className="mt-auto text-center text-[10px] text-stone-500 border-t-2 border-amber-400 pt-2 leading-5">
           <div>س.ت : ١٠١٠٨٤٥٤٧٦ — ٤٧٦٠٩١١ - ٤٧٦٠٩٧٧ — فاكس : ٢٩١٧٣٩٤ — ص.ب : ٥٠٠٦٥ الرياض ١١٥٢٣ — رقم إشتراك الغرفة ٢٦٥٤٢</div>
           <div className="italic">C.R: 1010845476 - Tel: 4760911 - 4790612 - Fax: 2917394 - P.O.Box 50065 . Riyadh 11523 - C.C. No. 26542</div>
         </div>
