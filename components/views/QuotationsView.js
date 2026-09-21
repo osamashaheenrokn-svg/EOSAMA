@@ -191,15 +191,15 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           <Plus className="w-3.5 h-3.5" /> إضافة بند
         </button>
 
-        <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 mb-10">
-          <div className="text-[11px] font-bold text-stone-500 mb-2">الشروط والملاحظات</div>
+        <div className={sheet.terms.trim() ? "bg-stone-50 border border-stone-200 rounded-lg p-4 mb-10" : "mb-2"}>
+          {sheet.terms.trim() && <div className="text-[11px] font-bold text-stone-500 mb-2">الشروط والملاحظات</div>}
           <textarea
             className="qs-field font-bold text-sm leading-7"
-            rows={6}
-            placeholder="الشروط والملاحظات..."
+            rows={sheet.terms.trim() ? 6 : 1}
             value={sheet.terms}
             onChange={(e) => updateField("terms", e.target.value)}
           />
+          {!sheet.terms.trim() && <div className="no-print text-xs text-stone-300">اكتب الشروط والملاحظات هنا (اختياري)...</div>}
         </div>
 
         <div className="mb-8 text-left">
