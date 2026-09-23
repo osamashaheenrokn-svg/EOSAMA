@@ -5,8 +5,8 @@ export default function manifest() {
     description: "بوابة إدارة المشروعات — شركة قمة الحضارة للمقاولات",
     start_url: "/",
     display: "standalone",
-    background_color: "#163a5c",
-    theme_color: "#163a5c",
+    background_color: "#24272d",
+    theme_color: "#24272d",
     lang: "ar",
     dir: "rtl",
     icons: [
