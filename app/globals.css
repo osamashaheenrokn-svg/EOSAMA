@@ -12,41 +12,41 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* هوية "المخطط الهندسي" — أزرق مخططات هندسية داكن + ذهبي، بدل الحياد الدافئ الافتراضي. */
+/* هوية "الفولاذ والأمان" — رمادي فولاذي داكن + كهرماني السلامة، بدل الحياد الدافئ الافتراضي. */
 @theme {
-  --color-slate-50: #f3f7fb;
-  --color-slate-100: #e6eef5;
-  --color-slate-200: #cedcea;
-  --color-slate-300: #a9c1d8;
-  --color-slate-400: #7ca0c0;
-  --color-slate-500: #4e7196;
-  --color-slate-600: #2f5c82;
-  --color-slate-700: #234f70;
-  --color-slate-800: #1b4665;
-  --color-slate-900: #163a5c;
-  --color-slate-950: #0f2a44;
+  --color-slate-50: #f4f5f6;
+  --color-slate-100: #e9eaec;
+  --color-slate-200: #d3d5d9;
+  --color-slate-300: #b3b7bd;
+  --color-slate-400: #888e96;
+  --color-slate-500: #656b72;
+  --color-slate-600: #4a4f56;
+  --color-slate-700: #363a40;
+  --color-slate-800: #2c2f35;
+  --color-slate-900: #24272d;
+  --color-slate-950: #191b1f;
 
-  --color-amber-50: #fbf4e4;
-  --color-amber-100: #f6e8c9;
-  --color-amber-200: #eedaa3;
-  --color-amber-300: #e4c87a;
-  --color-amber-400: #ddba5f;
-  --color-amber-500: #d9ae4d;
-  --color-amber-600: #d9a441;
-  --color-amber-700: #b3853a;
-  --color-amber-800: #8c6830;
-  --color-amber-900: #6b4f26;
+  --color-amber-50: #fdf1e2;
+  --color-amber-100: #fbe1c0;
+  --color-amber-200: #f6cc97;
+  --color-amber-300: #f0b26a;
+  --color-amber-400: #ec9f4c;
+  --color-amber-500: #e99631;
+  --color-amber-600: #e8871e;
+  --color-amber-700: #c06c15;
+  --color-amber-800: #955313;
+  --color-amber-900: #6e3d10;
 
-  --color-stone-50: #f6f8fa;
-  --color-stone-100: #eef2f6;
-  --color-stone-200: #dde5ec;
-  --color-stone-300: #c7d2dc;
-  --color-stone-400: #a9b7c4;
-  --color-stone-500: #8695a5;
-  --color-stone-600: #5f6e7e;
-  --color-stone-700: #445261;
-  --color-stone-800: #2e3a47;
-  --color-stone-900: #1b242e;
+  --color-stone-50: #f7f8f9;
+  --color-stone-100: #eef0f2;
+  --color-stone-200: #d9dce0;
+  --color-stone-300: #c2c6cb;
+  --color-stone-400: #9ca1a8;
+  --color-stone-500: #757b83;
+  --color-stone-600: #565c63;
+  --color-stone-700: #3f444a;
+  --color-stone-800: #2b2e33;
+  --color-stone-900: #1c1f23;
 }
 
 @media (prefers-color-scheme: dark) {
