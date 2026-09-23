@@ -17,13 +17,17 @@ function todayPlain() {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
+function blankItem() {
+  return { description: "", description_en: "", unit: "", price: "" };
+}
+
 function blankSheet() {
   return {
     id: null,
     client_name: "",
     subject: "",
     quote_date: todayPlain(),
-    items: [{ description: "", unit: "", price: "" }],
+    items: [blankItem()],
     terms: DEFAULT_TERMS,
   };
 }
@@ -39,7 +43,7 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
     setSheet((s) => ({ ...s, items: s.items.map((it, idx) => (idx === i ? { ...it, [field]: value } : it)) }));
   }
   function addItem() {
-    setSheet((s) => ({ ...s, items: [...s.items, { description: "", unit: "", price: "" }] }));
+    setSheet((s) => ({ ...s, items: [...s.items, blankItem()] }));
   }
   function removeItem(i) {
     setSheet((s) => ({ ...s, items: s.items.filter((_, idx) => idx !== i) }));
@@ -50,7 +54,7 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
       client_name: q.client_name || "",
       subject: q.subject || "",
       quote_date: asCopy ? todayPlain() : (q.quote_date || todayPlain()),
-      items: q.items?.length ? q.items : [{ description: "", unit: "", price: "" }],
+      items: q.items?.length ? q.items : [blankItem()],
       terms: q.terms || DEFAULT_TERMS,
     });
   }
@@ -160,10 +164,10 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
         <table className="w-full border-collapse border border-slate-900 text-sm mb-2 overflow-hidden rounded-lg">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="border border-slate-900 p-2 w-10">م</th>
-              <th className="border border-slate-900 p-2">البيان</th>
-              <th className="border border-slate-900 p-2 w-24">الوحدة</th>
-              <th className="border border-slate-900 p-2 w-24">السعر</th>
+              <th className="border border-slate-900 p-2 w-10">م<div className="text-[9px] font-normal opacity-70">No.</div></th>
+              <th className="border border-slate-900 p-2">البيان<div className="text-[9px] font-normal opacity-70">Description</div></th>
+              <th className="border border-slate-900 p-2 w-24">الوحدة<div className="text-[9px] font-normal opacity-70">Unit</div></th>
+              <th className="border border-slate-900 p-2 w-24">السعر<div className="text-[9px] font-normal opacity-70">Price</div></th>
               <th className="no-print w-8"></th>
             </tr>
           </thead>
@@ -171,8 +175,23 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
             {sheet.items.map((it, i) => (
               <tr key={i} className={i % 2 === 1 ? "bg-stone-50" : ""}>
                 <td className="border border-slate-900 p-2 text-center align-top">{i + 1}</td>
-                <td className="border border-slate-900 p-2 align-top">
-                  <textarea className="qs-field" rows={2} value={it.description} onChange={(e) => updateItem(i, "description", e.target.value)} />
+                <td className="border border-slate-900 p-0 align-top">
+                  <textarea
+                    className="qs-field p-2"
+                    dir="rtl"
+                    rows={2}
+                    placeholder="البيان بالعربي..."
+                    value={it.description}
+                    onChange={(e) => updateItem(i, "description", e.target.value)}
+                  />
+                  <textarea
+                    className="qs-field p-2 text-left border-t border-stone-200 text-stone-600 italic"
+                    dir="ltr"
+                    rows={2}
+                    placeholder="Description in English..."
+                    value={it.description_en || ""}
+                    onChange={(e) => updateItem(i, "description_en", e.target.value)}
+                  />
                 </td>
                 <td className="border border-slate-900 p-2 align-top">
                   <input className="qs-field text-center" value={it.unit} onChange={(e) => updateItem(i, "unit", e.target.value)} />
