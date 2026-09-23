@@ -34,18 +34,18 @@ export default function LoginPage() {
           <svg width="72" height="72" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="mb-3">
             <defs>
               <linearGradient id="peakGoldLogin" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#ddba5f" />
-                <stop offset="100%" stopColor="#d9a441" />
+                <stop offset="0%" stopColor="#ec9f4c" />
+                <stop offset="100%" stopColor="#e8871e" />
               </linearGradient>
             </defs>
-            <rect x="0" y="0" width="200" height="200" rx="32" fill="#163a5c" />
+            <rect x="0" y="0" width="200" height="200" rx="32" fill="#24272d" />
             <g transform="translate(20,26)">
-              <rect x="0" y="128" width="160" height="8" rx="4" fill="#eef2f6" />
-              <polygon points="8,128 28,86 48,128" fill="#eef2f6" opacity="0.55" />
-              <polygon points="48,128 78,54 108,128" fill="#eef2f6" opacity="0.8" />
+              <rect x="0" y="128" width="160" height="8" rx="4" fill="#eef0f2" />
+              <polygon points="8,128 28,86 48,128" fill="#eef0f2" opacity="0.55" />
+              <polygon points="48,128 78,54 108,128" fill="#eef0f2" opacity="0.8" />
               <polygon points="108,128 138,20 168,128" fill="url(#peakGoldLogin)" />
-              <circle cx="138" cy="20" r="6" fill="#163a5c" />
-              <line x1="138" y1="20" x2="138" y2="4" stroke="#eef2f6" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="138" cy="20" r="6" fill="#24272d" />
+              <line x1="138" y1="20" x2="138" y2="4" stroke="#eef0f2" strokeWidth="3" strokeLinecap="round" />
             </g>
           </svg>
           <div className="font-extrabold text-lg" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
