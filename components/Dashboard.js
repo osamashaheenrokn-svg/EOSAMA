@@ -994,7 +994,7 @@ export function Dashboard({ profile, userEmail }) {
         @media print {
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; inset: 0; width: 100%; padding: 24px; }
+          .print-area { position: absolute; top: 0; left: 0; right: 0; width: 100%; padding: 24px; }
           .no-print { display: none !important; }
         }
         .print-only-header { display: none; }
