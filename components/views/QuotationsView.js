@@ -113,27 +113,41 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
         .qs-field:focus { outline: none; background: #fbf4e4; }
       `}</style>
 
-      <div className="print-area flex flex-col bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden" dir="rtl">
-        <div className="h-2 shrink-0 bg-gradient-to-l from-amber-400 via-amber-500 to-slate-900" />
-        <div className="p-6 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-4 pb-4 mb-4 border-b-2 border-slate-900">
-          <div className="text-center w-32" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
-            <div className="font-extrabold text-sm leading-tight">شركة قمة الحضارة للمقاولات</div>
-            <div className="text-[11px] mt-1" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>س.ت : ١٠١٠٨٤٥٤٧٦</div>
-          </div>
-          <div className="w-16 h-16 shrink-0 rounded-full border-2 border-slate-900 flex items-center justify-center font-extrabold text-slate-900">K.A</div>
-          <div className="text-center text-slate-900 w-32">
-            <div className="italic font-bold text-sm leading-tight">Kemet alhadara Contracting Company</div>
-            <div className="text-[11px] mt-1">C.R: 1010845476</div>
-          </div>
-        </div>
+      {/*
+        The whole document is one outer table: a native <thead>/<tfoot> is the only
+        technique browsers reliably repeat on every printed page with correctly
+        reserved space — position:fixed plus manual padding looked right on screen
+        but silently hid a row wherever a page happened to break, because CSS only
+        applies top/bottom padding once, not to every page fragment.
+      */}
+      <table className="print-area w-full border-collapse bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden" dir="rtl">
+        <thead>
+          <tr><td className="p-0">
+            <div className="h-2 bg-gradient-to-l from-amber-400 via-amber-500 to-slate-900" />
+            <div className="px-6 pt-6">
+              <div className="flex items-start justify-between gap-4 pb-4 mb-4 border-b-2 border-slate-900">
+                <div className="text-center w-32" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
+                  <div className="font-extrabold text-sm leading-tight">شركة قمة الحضارة للمقاولات</div>
+                  <div className="text-[11px] mt-1" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>س.ت : ١٠١٠٨٤٥٤٧٦</div>
+                </div>
+                <div className="w-16 h-16 shrink-0 rounded-full border-2 border-slate-900 flex items-center justify-center font-extrabold text-slate-900">K.A</div>
+                <div className="text-center text-slate-900 w-32">
+                  <div className="italic font-bold text-sm leading-tight">Kemet alhadara Contracting Company</div>
+                  <div className="text-[11px] mt-1">C.R: 1010845476</div>
+                </div>
+              </div>
 
-        <div className="flex justify-center mb-5">
-          <span className="inline-block bg-amber-50 text-amber-800 border border-amber-300 rounded-full px-5 py-1 text-xs font-extrabold tracking-wide" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
-            عرض سعر
-          </span>
-        </div>
+              <div className="flex justify-center mb-5">
+                <span className="inline-block bg-amber-50 text-amber-800 border border-amber-300 rounded-full px-5 py-1 text-xs font-extrabold tracking-wide" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>
+                  عرض سعر
+                </span>
+              </div>
+            </div>
+          </td></tr>
+        </thead>
 
+        <tbody>
+          <tr><td className="px-6 align-top">
         <div className="flex justify-start mb-4 text-sm">
           <label className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-stone-500 shrink-0">التاريخ :</span>
@@ -161,6 +175,7 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           onChange={(e) => updateField("subject", e.target.value)}
         />
 
+        <div className="no-print text-[11px] text-stone-400 mb-1.5">تقدر تضيف وصف بالإنجليزي تحت كل بند لو محتاج، أو تسيبه فاضي.</div>
         <table className="w-full border-collapse border border-slate-900 text-sm mb-2 overflow-hidden rounded-lg">
           <thead>
             <tr className="bg-slate-900 text-white">
@@ -172,45 +187,46 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
             </tr>
           </thead>
           <tbody>
-            {sheet.items.map((it, i) => (
-              <tr key={i} className={i % 2 === 1 ? "bg-stone-50" : ""}>
-                <td className="border border-slate-900 p-2 text-center align-top">{i + 1}</td>
-                <td className="border border-slate-900 p-0 align-top">
-                  <textarea
-                    className="qs-field p-2"
-                    dir="rtl"
-                    rows={2}
-                    placeholder="البيان بالعربي..."
-                    value={it.description}
-                    onChange={(e) => updateItem(i, "description", e.target.value)}
-                  />
-                  <textarea
-                    className="qs-field p-2 text-left border-t border-stone-200 text-stone-600 italic"
-                    dir="ltr"
-                    rows={2}
-                    placeholder="Description in English..."
-                    value={it.description_en || ""}
-                    onChange={(e) => updateItem(i, "description_en", e.target.value)}
-                  />
-                </td>
-                <td className="border border-slate-900 p-2 align-top">
-                  <input className="qs-field text-center" value={it.unit} onChange={(e) => updateItem(i, "unit", e.target.value)} />
-                </td>
-                <td className="border border-slate-900 p-2 align-top" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
-                  <input className="qs-field text-center font-bold text-amber-800" value={it.price} onChange={(e) => updateItem(i, "price", e.target.value)} />
-                </td>
-                <td className="no-print p-1 text-center align-top">
-                  <button onClick={() => removeItem(i)} className="text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                </td>
-              </tr>
-            ))}
+            {sheet.items.map((it, i) => {
+              const hasEn = !!(it.description_en || "").trim();
+              return (
+                <tr key={i} className={i % 2 === 1 ? "bg-stone-50" : ""} style={{ breakInside: "avoid" }}>
+                  <td className="border border-slate-900 p-2 text-center align-top">{i + 1}</td>
+                  <td className="border border-slate-900 p-0 align-top">
+                    <textarea
+                      className="qs-field p-2"
+                      dir="rtl"
+                      rows={2}
+                      value={it.description}
+                      onChange={(e) => updateItem(i, "description", e.target.value)}
+                    />
+                    <textarea
+                      className={`qs-field text-left text-stone-600 italic leading-tight ${hasEn ? "p-2 border-t border-stone-200" : "px-2 py-0.5"}`}
+                      dir="ltr"
+                      rows={hasEn ? 2 : 1}
+                      value={it.description_en || ""}
+                      onChange={(e) => updateItem(i, "description_en", e.target.value)}
+                    />
+                  </td>
+                  <td className="border border-slate-900 p-2 align-top">
+                    <input className="qs-field text-center" value={it.unit} onChange={(e) => updateItem(i, "unit", e.target.value)} />
+                  </td>
+                  <td className="border border-slate-900 p-2 align-top" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+                    <input className="qs-field text-center font-bold text-amber-800" value={it.price} onChange={(e) => updateItem(i, "price", e.target.value)} />
+                  </td>
+                  <td className="no-print p-1 text-center align-top">
+                    <button onClick={() => removeItem(i)} className="text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         <button onClick={addItem} className="no-print text-xs text-slate-700 border border-stone-300 rounded-lg px-2.5 py-1.5 mb-5 flex items-center gap-1">
           <Plus className="w-3.5 h-3.5" /> إضافة بند
         </button>
 
-        <div className={sheet.terms.trim() ? "bg-stone-50 border border-stone-200 rounded-lg p-4 mb-10" : "mb-2"}>
+        <div className={sheet.terms.trim() ? "bg-stone-50 border border-stone-200 rounded-lg p-4 mb-10" : "mb-2"} style={{ breakInside: "avoid" }}>
           {sheet.terms.trim() && <div className="text-[11px] font-bold text-stone-500 mb-2">الشروط والملاحظات</div>}
           <textarea
             className="qs-field font-bold text-sm leading-7"
@@ -220,19 +236,24 @@ export function QuotationsView({ quotations, saveQuotation, deleteQuotation }) {
           />
           {!sheet.terms.trim() && <div className="no-print text-xs text-stone-300">اكتب الشروط والملاحظات هنا (اختياري)...</div>}
         </div>
+          </td></tr>
+        </tbody>
 
-        <div className="mb-8 text-left">
-          <div className="font-bold text-sm mb-1">شركة قمة الحضاره للمقاولات</div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/company-stamp.png" alt="ختم الشركة" className="h-20 w-auto inline-block" />
-        </div>
+        <tfoot>
+          <tr><td className="px-6 pb-6 align-top">
+            <div className="mb-2 text-left">
+              <div className="font-bold text-sm mb-1">شركة قمة الحضاره للمقاولات</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/company-stamp.png" alt="ختم الشركة" className="h-20 w-auto inline-block" />
+            </div>
 
-        <div className="mt-auto text-center text-[10px] text-stone-500 border-t-2 border-amber-400 pt-2 leading-5">
-          <div>س.ت : ١٠١٠٨٤٥٤٧٦ — ٤٧٦٠٩١١ - ٤٧٦٠٩٧٧ — فاكس : ٢٩١٧٣٩٤ — ص.ب : ٥٠٠٦٥ الرياض ١١٥٢٣ — رقم إشتراك الغرفة ٢٦٥٤٢</div>
-          <div className="italic">C.R: 1010845476 - Tel: 4760911 - 4790612 - Fax: 2917394 - P.O.Box 50065 . Riyadh 11523 - C.C. No. 26542</div>
-        </div>
-        </div>
-      </div>
+            <div className="text-center text-[10px] text-stone-500 border-t-2 border-amber-400 pt-2 leading-5">
+              <div>س.ت : ١٠١٠٨٤٥٤٧٦ — ٤٧٦٠٩١١ - ٤٧٦٠٩٧٧ — فاكس : ٢٩١٧٣٩٤ — ص.ب : ٥٠٠٦٥ الرياض ١١٥٢٣ — رقم إشتراك الغرفة ٢٦٥٤٢</div>
+              <div className="italic">C.R: 1010845476 - Tel: 4760911 - 4790612 - Fax: 2917394 - P.O.Box 50065 . Riyadh 11523 - C.C. No. 26542</div>
+            </div>
+          </td></tr>
+        </tfoot>
+      </table>
     </div>
   );
 }
