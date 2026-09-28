@@ -1221,7 +1221,7 @@ export function Dashboard({ profile, userEmail }) {
                 </div>
 
                 {effectiveTab === "updates" && (
-                  <UpdatesTab key={activeId} active={active} isOwner={isOwner} setProjectField={setProjectField} newUpdate={newUpdate} setNewUpdate={setNewUpdate} addUpdate={addUpdate} updates={d.updates} progressColor={progressColor} projGrandTotal={projGrandTotal} projRevenue={projRevenue} revenuesCount={d.revenues.length} />
+                  <UpdatesTab key={activeId} active={active} isOwner={isOwner} setProjectField={setProjectField} newUpdate={newUpdate} setNewUpdate={setNewUpdate} addUpdate={addUpdate} updates={d.updates} updateRow={updateRow} deleteRow={deleteRow} progressColor={progressColor} projGrandTotal={projGrandTotal} projRevenue={projRevenue} revenuesCount={d.revenues.length} />
                 )}
                 {effectiveTab === "photos" && (
                   <PhotosTab key={activeId} active={active} isOwner={isOwner} newPhotoCaption={newPhotoCaption} setNewPhotoCaption={setNewPhotoCaption} addPhoto={addPhoto} photos={d.photos} updatePhotoCaption={updatePhotoCaption} deletePhoto={(id) => deleteRow("photos", id)} />
