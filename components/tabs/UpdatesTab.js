@@ -1,10 +1,64 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { Plus, Pencil, Check, X } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
+import { RowActions } from "../RowActions";
 
-export function UpdatesTab({ active, isOwner, setProjectField, newUpdate, setNewUpdate, addUpdate, updates, progressColor, projGrandTotal, projRevenue, revenuesCount }) {
+function UpdateRow({ u, isOwner, updateRow, deleteRow }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ text: u.text, date: u.date });
+
+  function save() {
+    if (!draft.text.trim()) return;
+    updateRow("updates", u.id, { text: draft.text.trim(), date: draft.date });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <input
+          type="date"
+          value={draft.date}
+          onChange={(e) => setDraft((f) => ({ ...f, date: e.target.value }))}
+          className="border border-stone-300 rounded px-2 py-1 text-xs mb-2"
+          style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+        />
+        <textarea
+          value={draft.text}
+          onChange={(e) => setDraft((f) => ({ ...f, text: e.target.value }))}
+          rows={2}
+          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm mb-2"
+        />
+        <div className="flex items-center gap-1">
+          <button onClick={save} title="حفظ" className="text-emerald-700 border border-emerald-200 rounded px-1.5 py-1"><Check className="w-3.5 h-3.5" /></button>
+          <button onClick={() => { setEditing(false); setDraft({ text: u.text, date: u.date }); }} title="إلغاء" className="text-stone-500 border border-stone-300 rounded px-1.5 py-1"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-stone-200 rounded-lg p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-xs text-stone-400" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{u.date}</div>
+        {isOwner && (
+          <div className="flex items-center gap-1 shrink-0 no-print">
+            <button onClick={() => setEditing(true)} title="تعديل" className="text-slate-500 hover:text-slate-900 border border-stone-300 rounded px-1.5 py-1">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <RowActions canManage={isOwner} onDelete={() => deleteRow("updates", u.id)} />
+          </div>
+        )}
+      </div>
+      <div className="text-sm mt-1">{u.text}</div>
+    </div>
+  );
+}
+
+export function UpdatesTab({ active, isOwner, setProjectField, newUpdate, setNewUpdate, addUpdate, updates, updateRow, deleteRow, progressColor, projGrandTotal, projRevenue, revenuesCount }) {
   const pc = progressColor(active.progress);
   const r = 42, circumference = 2 * Math.PI * r;
   const dash = (active.progress / 100) * circumference;
@@ -86,10 +140,7 @@ export function UpdatesTab({ active, isOwner, setProjectField, newUpdate, setNew
       <div className="space-y-3">
         {updates.length === 0 && <div className="text-stone-400 text-sm">لا توجد تحديثات بعد.</div>}
         {updates.map((u) => (
-          <div key={u.id} className="bg-white border border-stone-200 rounded-lg p-3">
-            <div className="text-xs text-stone-400 mb-1" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{u.date}</div>
-            <div className="text-sm">{u.text}</div>
-          </div>
+          <UpdateRow key={u.id} u={u} isOwner={isOwner} updateRow={updateRow} deleteRow={deleteRow} />
         ))}
       </div>
     </div>
