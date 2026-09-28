@@ -88,14 +88,14 @@ export function SummaryTab({ active, detail, projGrandTotal, projCustodySpent, p
         </div>
       </div>
 
-      <div className="text-sm font-bold mb-2">الأعمال المنتهية (آخر تحديثات المشروع)</div>
+      <div className="text-sm font-bold mb-2">الأعمال المنتهية (آخر 5 تحديثات)</div>
       <div className="bg-white border border-stone-200 rounded-lg overflow-hidden mb-5">
         {detail.updates.length === 0 ? (
           <div className="text-stone-400 text-sm p-4 text-center">لا توجد أعمال مسجّلة بعد.</div>
         ) : (
           <table className="w-full text-sm">
             <tbody>
-              {detail.updates.map((u) => (
+              {detail.updates.slice(0, 5).map((u) => (
                 <tr key={u.id} className="border-t border-stone-100 first:border-t-0">
                   <td className="p-2 text-stone-400 w-28" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{u.date}</td>
                   <td className="p-2">{u.text}</td>
