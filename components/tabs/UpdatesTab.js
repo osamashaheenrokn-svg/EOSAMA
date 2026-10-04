@@ -5,6 +5,7 @@ import { Plus, Pencil, Check, X } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { RowActions } from "../RowActions";
+import { AttachmentCell } from "../AttachmentCell";
 
 function UpdateRow({ u, isOwner, updateRow, deleteRow }) {
   const [editing, setEditing] = useState(false);
@@ -58,10 +59,11 @@ function UpdateRow({ u, isOwner, updateRow, deleteRow }) {
   );
 }
 
-export function UpdatesTab({ active, isOwner, setProjectField, newUpdate, setNewUpdate, addUpdate, updates, updateRow, deleteRow, progressColor, projGrandTotal, projRevenue, revenuesCount }) {
+export function UpdatesTab({ active, isOwner, setProjectField, newUpdate, setNewUpdate, addUpdate, updates, updateRow, deleteRow, attachFile, progressColor, projGrandTotal, projRevenue, revenuesCount }) {
   const pc = progressColor(active.progress);
   const r = 42, circumference = 2 * Math.PI * r;
   const dash = (active.progress / 100) * circumference;
+  const remainingPercent = active.contract_value > 0 ? (Number(active.remaining_work_estimate || 0) / Number(active.contract_value)) * 100 : 0;
 
   return (
     <div className="print-area">
@@ -130,6 +132,40 @@ export function UpdatesTab({ active, isOwner, setProjectField, newUpdate, setNew
           </div>
         </div>
       )}
+
+      <div className="bg-white border-2 border-amber-200 rounded-xl p-4 mb-5">
+        <div className="text-sm font-bold text-stone-700 mb-3">التكلفة التقديرية للأعمال المتبقية للمشروع</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <div className="text-xs text-stone-500 mb-1">القيمة التقديرية</div>
+            {isOwner ? (
+              <input
+                defaultValue={active.remaining_work_estimate}
+                onBlur={(e) => setProjectField("remaining_work_estimate", Number(e.target.value.replace(/[^0-9]/g, "") || 0))}
+                className="w-full border border-stone-300 rounded px-2 py-1.5 text-sm font-bold"
+                style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+              />
+            ) : (
+              <div className="text-lg font-bold text-slate-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{Number(active.remaining_work_estimate).toLocaleString()} ر.س</div>
+            )}
+          </div>
+          <div>
+            <div className="text-xs text-stone-500 mb-1">النسبة من قيمة عقد المشروع</div>
+            <div className="text-lg font-bold text-amber-700" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+              {remainingPercent.toLocaleString(undefined, { maximumFractionDigits: 1 })}٪
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-stone-500 mb-1">مرفق داعم</div>
+            <AttachmentCell
+              path={active.remaining_work_attachment_path}
+              canEdit={isOwner}
+              inputId="remaining-work-attachment"
+              onUpload={(file) => attachFile("projects", active.id, file, "remaining_work_attachment_path")}
+            />
+          </div>
+        </div>
+      </div>
 
       {isOwner && (
         <div className="flex gap-2 mb-4">
