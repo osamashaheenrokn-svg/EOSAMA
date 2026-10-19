@@ -1,12 +1,118 @@
 "use client";
 
-import { ClipboardCheck, Plus, Trash2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ClipboardCheck, Download, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { daysUntil } from "@/lib/db";
+import { createClient } from "@/lib/supabase/client";
+import { getDownloadUrl, getSignedUrls } from "@/lib/attachments";
+
+const DOC_SLOTS = [
+  { category: "استمارة", label: "الاستمارة", multiple: false },
+  { category: "تأمين", label: "التأمين", multiple: false },
+  { category: "أخرى", label: "مرفقات أخرى", multiple: true },
+];
+
+function AssetDocRow({ doc, url, canEdit, onDelete }) {
+  const [busy, setBusy] = useState(false);
+  async function download() {
+    setBusy(true);
+    try {
+      const href = await getDownloadUrl(createClient(), doc.attachment_path, doc.name);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = doc.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert("تعذّر تنزيل الملف: " + (err?.message || ""));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const btn = "no-print border border-stone-300 rounded p-1 text-stone-600 hover:text-slate-900 disabled:opacity-40";
+  return (
+    <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded px-2 py-1">
+      <FileText className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+      <span className="text-xs truncate flex-1 min-w-0" title={doc.name}>{doc.name}</span>
+      <a href={url || undefined} target="_blank" rel="noreferrer" aria-disabled={!url} className={`${btn} ${url ? "" : "pointer-events-none opacity-40"}`} title="عرض"><Eye className="w-3.5 h-3.5" /></a>
+      <button onClick={download} disabled={busy || !doc.attachment_path} className={btn} title="تنزيل"><Download className="w-3.5 h-3.5" /></button>
+      {canEdit && <button onClick={onDelete} className="no-print border border-rose-200 rounded p-1 text-rose-600" title="حذف"><Trash2 className="w-3.5 h-3.5" /></button>}
+    </div>
+  );
+}
+
+function AssetDocSlots({ asset, canEdit, addAssetDocument, deleteAssetDocument }) {
+  const docs = asset.asset_documents || [];
+  const [urls, setUrls] = useState({});
+  const [uploading, setUploading] = useState(null);
+  const pathsKey = docs.map((d) => d.attachment_path).filter(Boolean).sort().join("|");
+
+  useEffect(() => {
+    let active = true;
+    const paths = pathsKey ? pathsKey.split("|") : [];
+    if (paths.length === 0) return;
+    getSignedUrls(createClient(), paths).then((map) => { if (active) setUrls(map); }).catch(() => {});
+    return () => { active = false; };
+  }, [pathsKey]);
+
+  async function upload(category, file, hasExisting) {
+    if (hasExisting && !confirm("يوجد ملف في هذه الخانة بالفعل. استبداله بالملف الجديد؟")) return;
+    setUploading(category);
+    try {
+      await addAssetDocument(asset.id, category, file);
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {DOC_SLOTS.map((slot) => {
+        // Documents from before the slots existed have no category — show them under "أخرى".
+        const slotDocs = docs.filter((d) => (d.category || "أخرى") === slot.category);
+        const hasExisting = !slot.multiple && slotDocs.length > 0;
+        const inputId = `asset-doc-${asset.id}-${slot.category}`;
+        return (
+          <div key={slot.category} className="border border-stone-200 rounded-lg p-2.5 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-bold">{slot.label}</div>
+              {slotDocs.length > 0
+                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">{slot.multiple ? `${slotDocs.length} ملف` : "مرفوعة"}</span>
+                : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">غير مرفوعة</span>}
+            </div>
+            {slotDocs.length === 0 && <div className="text-xs text-stone-400">لا يوجد ملف.</div>}
+            {slotDocs.map((d) => (
+              <AssetDocRow key={d.id} doc={d} url={urls[d.attachment_path]} canEdit={canEdit} onDelete={() => deleteAssetDocument(asset.id, d.id)} />
+            ))}
+            {canEdit && (
+              <label htmlFor={inputId} className={`no-print mt-auto inline-flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer ${hasExisting ? "border border-stone-300 text-stone-700" : "bg-slate-900 text-white"} ${uploading === slot.category ? "opacity-50 pointer-events-none" : ""}`}>
+                <Upload className="w-3.5 h-3.5" />
+                {uploading === slot.category ? "جاري الرفع..." : hasExisting ? "استبدال" : slot.multiple ? "إضافة مرفق" : "رفع"}
+                <input
+                  id={inputId}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    e.target.value = "";
+                    if (file) upload(slot.category, file, hasExisting);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function AssetsView({
-  isAdmin, companyAssets, newAsset, setNewAsset, addAsset, updateAssetField, deleteAsset, addAssetDocument, deleteAssetDocument,
+  isAdmin, canEdit, companyAssets, newAsset, setNewAsset, addAsset, updateAssetField, deleteAsset, addAssetDocument, deleteAssetDocument,
   companyTools, newTool, setNewTool, addTool, updateToolField, deleteTool,
 }) {
   return (
@@ -19,7 +125,7 @@ export function AssetsView({
       </div>
       <div className="text-sm text-stone-500 mb-5">سجل ثابت لكل معدة أو سيارة تمتلكها الشركة، مع متابعة تلقائية لتواريخ انتهاء الرخصة والتأمين.</div>
 
-      {isAdmin && (
+      {canEdit && (
         <div className="flex flex-wrap gap-2 mb-6 no-print bg-white border border-stone-200 rounded-lg p-3">
           <input value={newAsset.type} onChange={(e) => setNewAsset((f) => ({ ...f, type: e.target.value }))} placeholder="نوع المعدة (مثال: شاحنة نقل)" className="flex-1 min-w-[160px] border border-stone-300 rounded-lg px-3 py-2 text-sm" />
           <input value={newAsset.number} onChange={(e) => setNewAsset((f) => ({ ...f, number: e.target.value }))} placeholder="رقم المعدة / اللوحة" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-40" />
@@ -54,7 +160,7 @@ export function AssetsView({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                 <div className="text-xs text-stone-500">سنة الصنع: <b>{a.year_made || "—"}</b></div>
                 <div className="text-xs">
-                  نهاية الترخيص: {isAdmin ? (
+                  نهاية الترخيص: {canEdit ? (
                     <input type="date" defaultValue={a.license_expiry || ""} onBlur={(e) => updateAssetField(a.id, "license_expiry", e.target.value)} className="no-print border border-stone-300 rounded px-1 py-0.5 text-xs" />
                   ) : (
                     <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{a.license_expiry || "—"}</b>
@@ -62,7 +168,7 @@ export function AssetsView({
                   {licStatus && <span className={`mr-2 px-2 py-0.5 rounded-full ${licStatus.color}`}>{licStatus.label}</span>}
                 </div>
                 <div className="text-xs">
-                  نهاية التأمين: {isAdmin ? (
+                  نهاية التأمين: {canEdit ? (
                     <input type="date" defaultValue={a.insurance_expiry || ""} onBlur={(e) => updateAssetField(a.id, "insurance_expiry", e.target.value)} className="no-print border border-stone-300 rounded px-1 py-0.5 text-xs" />
                   ) : (
                     <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{a.insurance_expiry || "—"}</b>
@@ -71,22 +177,7 @@ export function AssetsView({
                 </div>
               </div>
 
-              <div className="text-xs font-bold mb-1.5">المستندات (الاستمارة، الرخصة، أوراق السيارة)</div>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {(a.asset_documents || []).length === 0 && <span className="text-xs text-stone-400">لا توجد مستندات مرفوعة.</span>}
-                {(a.asset_documents || []).map((d) => (
-                  <span key={d.id} className="text-xs bg-stone-100 px-2 py-1 rounded-full flex items-center gap-1.5">
-                    {d.name}
-                    {isAdmin && <button onClick={() => deleteAssetDocument(a.id, d.id)} className="no-print text-stone-400 hover:text-rose-600">×</button>}
-                  </span>
-                ))}
-              </div>
-              {isAdmin && (
-                <label className="no-print inline-flex items-center gap-1.5 text-xs bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold cursor-pointer">
-                  <Upload className="w-3.5 h-3.5" /> رفع مستند
-                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => e.target.files[0] && addAssetDocument(a.id, e.target.files[0])} />
-                </label>
-              )}
+              <AssetDocSlots asset={a} canEdit={canEdit} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument} />
             </div>
           );
         })}
@@ -95,7 +186,7 @@ export function AssetsView({
       <div className="text-lg font-extrabold mt-10 mb-1" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>العدة والأدوات</div>
       <div className="text-sm text-stone-500 mb-4">سجل بالنوع والكمية لمخزون العدة والمواد القابلة لإعادة الاستخدام (أخشاب فرم، شدة معدنية، وغيرها).</div>
 
-      {isAdmin && (
+      {canEdit && (
         <div className="flex flex-wrap gap-2 mb-4 no-print bg-white border border-stone-200 rounded-lg p-3">
           <input value={newTool.type} onChange={(e) => setNewTool((f) => ({ ...f, type: e.target.value }))} placeholder="النوع (مثال: أخشاب فرم)" className="flex-1 min-w-[160px] border border-stone-300 rounded-lg px-3 py-2 text-sm" />
           <input value={newTool.quantity} onChange={(e) => setNewTool((f) => ({ ...f, quantity: e.target.value.replace(/[^0-9]/g, "") }))} placeholder="الكمية" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-28" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
@@ -106,21 +197,21 @@ export function AssetsView({
 
       <div className="bg-white border border-stone-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-stone-50 text-stone-500 text-xs"><tr><th className="text-right p-2">النوع</th><th className="text-right p-2">الكمية</th><th className="text-right p-2">الوحدة</th>{isAdmin && <th className="text-right p-2 no-print"></th>}</tr></thead>
+          <thead className="bg-stone-50 text-stone-500 text-xs"><tr><th className="text-right p-2">النوع</th><th className="text-right p-2">الكمية</th><th className="text-right p-2">الوحدة</th>{canEdit && <th className="text-right p-2 no-print"></th>}</tr></thead>
           <tbody>
             {companyTools.length === 0 && (<tr><td colSpan={4} className="text-center text-stone-400 p-4">لا توجد أصناف مسجّلة بعد.</td></tr>)}
             {companyTools.map((t) => (
               <tr key={t.id} className="border-t border-stone-100">
                 <td className="p-2 font-bold">{t.type}</td>
                 <td className="p-2">
-                  {isAdmin ? (
+                  {canEdit ? (
                     <input defaultValue={t.quantity} onBlur={(e) => updateToolField(t.id, "quantity", e.target.value.replace(/[^0-9]/g, ""))} className="no-print w-20 border border-stone-300 rounded px-2 py-1 text-sm" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
                   ) : (
                     <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{t.quantity}</span>
                   )}
                 </td>
                 <td className="p-2 text-stone-500">{t.unit || "—"}</td>
-                {isAdmin && <td className="p-2 no-print"><button onClick={() => deleteTool(t.id)} className="text-rose-600 border border-rose-200 rounded px-1.5 py-1"><Trash2 className="w-3.5 h-3.5" /></button></td>}
+                {canEdit && <td className="p-2 no-print"><button onClick={() => deleteTool(t.id)} className="text-rose-600 border border-rose-200 rounded px-1.5 py-1"><Trash2 className="w-3.5 h-3.5" /></button></td>}
               </tr>
             ))}
           </tbody>

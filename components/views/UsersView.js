@@ -160,6 +160,17 @@ export function UsersView({
                       </label>
                     ))}
                   </div>
+                  <div className="text-[11px] text-stone-400 mb-1.5 mt-3">صلاحيات الإضافة والتعديل:</div>
+                  <div className="flex flex-wrap gap-4 text-xs">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={(u.more_access || []).includes("assetsEdit")}
+                        onChange={(e) => toggleUserMoreAccess(u.id, "assetsEdit", e.target.checked)}
+                      />
+                      إضافة وتعديل أصول الشركة ومستنداتها (بدون حذف الأصل نفسه)
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
