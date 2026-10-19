@@ -182,7 +182,8 @@ export function Dashboard({ profile, userEmail }) {
   const canSeeCompanyOverview = canSeeTreasury || hasMore("company");
   const canSeeNeeds = canSeeTreasury || hasMore("needs");
   const canSeeCompare = isAdmin || canViewAllFinance || hasMore("compare");
-  const canSeeAssets = isAdmin || canViewAllFinance || hasMore("assets");
+  const canEditAssets = isAdmin || hasMore("assetsEdit");
+  const canSeeAssets = canEditAssets || canViewAllFinance || hasMore("assets");
   const canSeeStaffDirectory = isAdmin || hasMore("staffDirectory");
 
   useEffect(() => {
@@ -1190,6 +1191,7 @@ export function Dashboard({ profile, userEmail }) {
 
       {view === "assets" && canSeeAssets && (
         <AssetsView
+          canEdit={canEditAssets}
           isAdmin={isAdmin}
           companyAssets={companyAssets} newAsset={newAsset} setNewAsset={setNewAsset} addAsset={addAsset}
           updateAssetField={updateAssetField} deleteAsset={deleteAsset} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument}

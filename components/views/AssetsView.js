@@ -14,7 +14,7 @@ const DOC_SLOTS = [
   { category: "أخرى", label: "مرفقات أخرى", multiple: true },
 ];
 
-function AssetDocRow({ doc, url, isAdmin, onDelete }) {
+function AssetDocRow({ doc, url, canEdit, onDelete }) {
   const [busy, setBusy] = useState(false);
   async function download() {
     setBusy(true);
@@ -39,12 +39,12 @@ function AssetDocRow({ doc, url, isAdmin, onDelete }) {
       <span className="text-xs truncate flex-1 min-w-0" title={doc.name}>{doc.name}</span>
       <a href={url || undefined} target="_blank" rel="noreferrer" aria-disabled={!url} className={`${btn} ${url ? "" : "pointer-events-none opacity-40"}`} title="عرض"><Eye className="w-3.5 h-3.5" /></a>
       <button onClick={download} disabled={busy || !doc.attachment_path} className={btn} title="تنزيل"><Download className="w-3.5 h-3.5" /></button>
-      {isAdmin && <button onClick={onDelete} className="no-print border border-rose-200 rounded p-1 text-rose-600" title="حذف"><Trash2 className="w-3.5 h-3.5" /></button>}
+      {canEdit && <button onClick={onDelete} className="no-print border border-rose-200 rounded p-1 text-rose-600" title="حذف"><Trash2 className="w-3.5 h-3.5" /></button>}
     </div>
   );
 }
 
-function AssetDocSlots({ asset, isAdmin, addAssetDocument, deleteAssetDocument }) {
+function AssetDocSlots({ asset, canEdit, addAssetDocument, deleteAssetDocument }) {
   const docs = asset.asset_documents || [];
   const [urls, setUrls] = useState({});
   const [uploading, setUploading] = useState(null);
@@ -85,9 +85,9 @@ function AssetDocSlots({ asset, isAdmin, addAssetDocument, deleteAssetDocument }
             </div>
             {slotDocs.length === 0 && <div className="text-xs text-stone-400">لا يوجد ملف.</div>}
             {slotDocs.map((d) => (
-              <AssetDocRow key={d.id} doc={d} url={urls[d.attachment_path]} isAdmin={isAdmin} onDelete={() => deleteAssetDocument(asset.id, d.id)} />
+              <AssetDocRow key={d.id} doc={d} url={urls[d.attachment_path]} canEdit={canEdit} onDelete={() => deleteAssetDocument(asset.id, d.id)} />
             ))}
-            {isAdmin && (
+            {canEdit && (
               <label htmlFor={inputId} className={`no-print mt-auto inline-flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer ${hasExisting ? "border border-stone-300 text-stone-700" : "bg-slate-900 text-white"} ${uploading === slot.category ? "opacity-50 pointer-events-none" : ""}`}>
                 <Upload className="w-3.5 h-3.5" />
                 {uploading === slot.category ? "جاري الرفع..." : hasExisting ? "استبدال" : slot.multiple ? "إضافة مرفق" : "رفع"}
@@ -112,7 +112,7 @@ function AssetDocSlots({ asset, isAdmin, addAssetDocument, deleteAssetDocument }
 }
 
 export function AssetsView({
-  isAdmin, companyAssets, newAsset, setNewAsset, addAsset, updateAssetField, deleteAsset, addAssetDocument, deleteAssetDocument,
+  isAdmin, canEdit, companyAssets, newAsset, setNewAsset, addAsset, updateAssetField, deleteAsset, addAssetDocument, deleteAssetDocument,
   companyTools, newTool, setNewTool, addTool, updateToolField, deleteTool,
 }) {
   return (
@@ -125,7 +125,7 @@ export function AssetsView({
       </div>
       <div className="text-sm text-stone-500 mb-5">سجل ثابت لكل معدة أو سيارة تمتلكها الشركة، مع متابعة تلقائية لتواريخ انتهاء الرخصة والتأمين.</div>
 
-      {isAdmin && (
+      {canEdit && (
         <div className="flex flex-wrap gap-2 mb-6 no-print bg-white border border-stone-200 rounded-lg p-3">
           <input value={newAsset.type} onChange={(e) => setNewAsset((f) => ({ ...f, type: e.target.value }))} placeholder="نوع المعدة (مثال: شاحنة نقل)" className="flex-1 min-w-[160px] border border-stone-300 rounded-lg px-3 py-2 text-sm" />
           <input value={newAsset.number} onChange={(e) => setNewAsset((f) => ({ ...f, number: e.target.value }))} placeholder="رقم المعدة / اللوحة" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-40" />
@@ -160,7 +160,7 @@ export function AssetsView({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                 <div className="text-xs text-stone-500">سنة الصنع: <b>{a.year_made || "—"}</b></div>
                 <div className="text-xs">
-                  نهاية الترخيص: {isAdmin ? (
+                  نهاية الترخيص: {canEdit ? (
                     <input type="date" defaultValue={a.license_expiry || ""} onBlur={(e) => updateAssetField(a.id, "license_expiry", e.target.value)} className="no-print border border-stone-300 rounded px-1 py-0.5 text-xs" />
                   ) : (
                     <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{a.license_expiry || "—"}</b>
@@ -168,7 +168,7 @@ export function AssetsView({
                   {licStatus && <span className={`mr-2 px-2 py-0.5 rounded-full ${licStatus.color}`}>{licStatus.label}</span>}
                 </div>
                 <div className="text-xs">
-                  نهاية التأمين: {isAdmin ? (
+                  نهاية التأمين: {canEdit ? (
                     <input type="date" defaultValue={a.insurance_expiry || ""} onBlur={(e) => updateAssetField(a.id, "insurance_expiry", e.target.value)} className="no-print border border-stone-300 rounded px-1 py-0.5 text-xs" />
                   ) : (
                     <b style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{a.insurance_expiry || "—"}</b>
@@ -177,7 +177,7 @@ export function AssetsView({
                 </div>
               </div>
 
-              <AssetDocSlots asset={a} isAdmin={isAdmin} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument} />
+              <AssetDocSlots asset={a} canEdit={canEdit} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument} />
             </div>
           );
         })}
@@ -186,7 +186,7 @@ export function AssetsView({
       <div className="text-lg font-extrabold mt-10 mb-1" style={{ fontFamily: "var(--font-cairo), sans-serif" }}>العدة والأدوات</div>
       <div className="text-sm text-stone-500 mb-4">سجل بالنوع والكمية لمخزون العدة والمواد القابلة لإعادة الاستخدام (أخشاب فرم، شدة معدنية، وغيرها).</div>
 
-      {isAdmin && (
+      {canEdit && (
         <div className="flex flex-wrap gap-2 mb-4 no-print bg-white border border-stone-200 rounded-lg p-3">
           <input value={newTool.type} onChange={(e) => setNewTool((f) => ({ ...f, type: e.target.value }))} placeholder="النوع (مثال: أخشاب فرم)" className="flex-1 min-w-[160px] border border-stone-300 rounded-lg px-3 py-2 text-sm" />
           <input value={newTool.quantity} onChange={(e) => setNewTool((f) => ({ ...f, quantity: e.target.value.replace(/[^0-9]/g, "") }))} placeholder="الكمية" className="border border-stone-300 rounded-lg px-3 py-2 text-sm w-28" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
@@ -197,21 +197,21 @@ export function AssetsView({
 
       <div className="bg-white border border-stone-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-stone-50 text-stone-500 text-xs"><tr><th className="text-right p-2">النوع</th><th className="text-right p-2">الكمية</th><th className="text-right p-2">الوحدة</th>{isAdmin && <th className="text-right p-2 no-print"></th>}</tr></thead>
+          <thead className="bg-stone-50 text-stone-500 text-xs"><tr><th className="text-right p-2">النوع</th><th className="text-right p-2">الكمية</th><th className="text-right p-2">الوحدة</th>{canEdit && <th className="text-right p-2 no-print"></th>}</tr></thead>
           <tbody>
             {companyTools.length === 0 && (<tr><td colSpan={4} className="text-center text-stone-400 p-4">لا توجد أصناف مسجّلة بعد.</td></tr>)}
             {companyTools.map((t) => (
               <tr key={t.id} className="border-t border-stone-100">
                 <td className="p-2 font-bold">{t.type}</td>
                 <td className="p-2">
-                  {isAdmin ? (
+                  {canEdit ? (
                     <input defaultValue={t.quantity} onBlur={(e) => updateToolField(t.id, "quantity", e.target.value.replace(/[^0-9]/g, ""))} className="no-print w-20 border border-stone-300 rounded px-2 py-1 text-sm" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
                   ) : (
                     <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>{t.quantity}</span>
                   )}
                 </td>
                 <td className="p-2 text-stone-500">{t.unit || "—"}</td>
-                {isAdmin && <td className="p-2 no-print"><button onClick={() => deleteTool(t.id)} className="text-rose-600 border border-rose-200 rounded px-1.5 py-1"><Trash2 className="w-3.5 h-3.5" /></button></td>}
+                {canEdit && <td className="p-2 no-print"><button onClick={() => deleteTool(t.id)} className="text-rose-600 border border-rose-200 rounded px-1.5 py-1"><Trash2 className="w-3.5 h-3.5" /></button></td>}
               </tr>
             ))}
           </tbody>
