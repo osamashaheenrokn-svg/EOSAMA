@@ -16,7 +16,7 @@ import {
   staffMonthlyTotal, staffPaidTotal, staffOverdueTotal, staffStatus, currentMonthKey, proratedSalaryForMonth,
   sumClaimsVat,
 } from "@/lib/db";
-import { uploadAttachment, compressImageFile } from "@/lib/attachments";
+import { uploadAttachment, compressImageFile, removeAttachment } from "@/lib/attachments";
 import { HomeView } from "./views/HomeView";
 import { ProjectDeleteModal } from "./ProjectDeleteModal";
 import { UsersView } from "./views/UsersView";
@@ -674,14 +674,46 @@ export function Dashboard({ profile, userEmail }) {
     logAction("حذف أصل من سجل أصول الشركة");
     reloadCompanyAssets();
   }
-  async function addAssetDocument(assetId, file) {
-    const path = await uploadAttachment(supabase, `assets/${assetId}`, file);
-    await supabase.from("asset_documents").insert({ asset_id: assetId, name: file.name, attachment_path: path });
-    logAction(`رفع مستند لأصل "${companyAssets.find((a) => a.id === assetId)?.type}"`);
+  // category: "استمارة" | "تأمين" | "أخرى". The registration and insurance slots hold a
+  // single file each, so uploading there replaces whatever was in the slot before.
+  async function addAssetDocument(assetId, category, file) {
+    const asset = companyAssets.find((a) => a.id === assetId);
+    let path;
+    try {
+      path = await uploadAttachment(supabase, `assets/${assetId}`, file);
+    } catch (err) {
+      alert("تعذّر رفع الملف: " + (err?.message || ""));
+      return;
+    }
+    const { error } = await supabase.from("asset_documents").insert({ asset_id: assetId, category, name: file.name, attachment_path: path });
+    if (error) {
+      await removeAttachment(supabase, path).catch(() => {});
+      alert(error.message?.includes("category")
+        ? "قاعدة البيانات تحتاج تحديث: شغّل ملف supabase/migration_5.sql من Supabase SQL Editor."
+        : "تعذّر حفظ المستند: " + error.message);
+      return;
+    }
+    if (category !== "أخرى") {
+      const previous = (asset?.asset_documents || []).filter((d) => d.category === category);
+      for (const d of previous) {
+        await supabase.from("asset_documents").delete().eq("id", d.id);
+        await removeAttachment(supabase, d.attachment_path).catch(() => {});
+      }
+    }
+    logAction(`رفع ${category === "أخرى" ? "مرفق" : category} لأصل "${asset?.type}"`);
     reloadCompanyAssets();
   }
   async function deleteAssetDocument(assetId, docId) {
-    await supabase.from("asset_documents").delete().eq("id", docId);
+    const asset = companyAssets.find((a) => a.id === assetId);
+    const doc = (asset?.asset_documents || []).find((d) => d.id === docId);
+    if (!confirm(`حذف المستند "${doc?.name || ""}"؟`)) return;
+    const { error } = await supabase.from("asset_documents").delete().eq("id", docId);
+    if (error) {
+      alert("تعذّر حذف المستند: " + error.message);
+      return;
+    }
+    await removeAttachment(supabase, doc?.attachment_path).catch(() => {});
+    logAction(`حذف مستند "${doc?.name || ""}" من أصل "${asset?.type}"`);
     reloadCompanyAssets();
   }
 
