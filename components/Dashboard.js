@@ -114,6 +114,7 @@ export function Dashboard({ profile, userEmail }) {
   const [newPhase, setNewPhase] = useState({ name: "", plannedStart: "", plannedEnd: "" });
   const [newDocument, setNewDocument] = useState({ category: "عقد العميل" });
   const [documentError, setDocumentError] = useState("");
+  const [drawingError, setDrawingError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [newQaItem, setNewQaItem] = useState({ phase: "", item: "" });
 
@@ -280,7 +281,7 @@ export function Dashboard({ profile, userEmail }) {
   const visibleNotifications = canViewAllFinance ? notifications : [];
 
   // ---- active-project aggregates ----
-  const d = detail || { updates: [], photos: [], custodyReceived: [], custodySpent: [], laborCosts: [], laborPayments: [], staff: [], revenues: [], subcontractors: [], phases: [], documents: [], qaChecklist: [] };
+  const d = detail || { updates: [], photos: [], custodyReceived: [], custodySpent: [], laborCosts: [], laborPayments: [], staff: [], revenues: [], subcontractors: [], phases: [], documents: [], qaChecklist: [], drawings: [], drawingsMissing: false };
   const projCustodyReceived = sum(d.custodyReceived, "amount");
   const projCustodySpent = sum(d.custodySpent, "amount");
   const projLaborCost = sum(d.laborCosts, "cost");
@@ -633,7 +634,87 @@ export function Dashboard({ profile, userEmail }) {
     }
   }
   async function deleteDocument(docId) {
-    await supabase.from("project_documents").delete().eq("id", docId);
+    const doc = d.documents.find((x) => x.id === docId);
+    if (!confirm(`حذف المستند "${doc?.name || ""}"؟`)) return;
+    const { error } = await supabase.from("project_documents").delete().eq("id", docId);
+    if (error) {
+      setDocumentError("تعذّر حذف المستند: " + error.message);
+      return;
+    }
+    await removeAttachment(supabase, doc?.attachment_path).catch(() => {});
+    logAction(`حذف مستند "${doc?.name || ""}" — ${active?.name}`);
+    reloadDetail(activeId);
+  }
+
+  // ---------------- project drawings ----------------
+  async function addDrawing({ number, title, description, file }) {
+    setDrawingError("");
+    if (!title.trim()) {
+      setDrawingError("اكتب اسم المخطط.");
+      return false;
+    }
+    let path = null;
+    try {
+      if (file) path = await uploadAttachment(supabase, activeId, file);
+      const { error } = await supabase.from("project_drawings").insert({
+        project_id: activeId, drawing_number: number.trim(), title: title.trim(), description: description.trim(),
+        file_name: file?.name || null, attachment_path: path,
+      });
+      if (error) throw error;
+    } catch (err) {
+      if (path) await removeAttachment(supabase, path).catch(() => {});
+      setDrawingError(err?.message || "تعذّر حفظ المخطط. حاول مرة أخرى.");
+      return false;
+    }
+    logAction(`إضافة مخطط ${number.trim() ? `رقم ${number.trim()} ` : ""}"${title.trim()}" — ${active?.name}`);
+    reloadDetail(activeId);
+    return true;
+  }
+  async function updateDrawingField(drawingId, field, value) {
+    const drawing = d.drawings.find((x) => x.id === drawingId);
+    const clean = (value || "").trim();
+    if (!drawing || (drawing[field] || "") === clean) return;
+    if (field === "title" && !clean) {
+      setDrawingError("اسم المخطط مطلوب.");
+      reloadDetail(activeId);
+      return;
+    }
+    setDrawingError("");
+    const { error } = await supabase.from("project_drawings").update({ [field]: clean }).eq("id", drawingId);
+    if (error) setDrawingError("تعذّر حفظ التعديل: " + error.message);
+    reloadDetail(activeId);
+  }
+  async function replaceDrawingFile(drawingId, file) {
+    const drawing = d.drawings.find((x) => x.id === drawingId);
+    if (!drawing || !file) return;
+    setDrawingError("");
+    let path;
+    try {
+      path = await uploadAttachment(supabase, activeId, file);
+    } catch (err) {
+      setDrawingError("تعذّر رفع الملف: " + (err?.message || ""));
+      return;
+    }
+    const { error } = await supabase.from("project_drawings").update({ file_name: file.name, attachment_path: path }).eq("id", drawingId);
+    if (error) {
+      await removeAttachment(supabase, path).catch(() => {});
+      setDrawingError("تعذّر حفظ الملف: " + error.message);
+      return;
+    }
+    await removeAttachment(supabase, drawing.attachment_path).catch(() => {});
+    logAction(`${drawing.attachment_path ? "استبدال" : "رفع"} ملف المخطط "${drawing.title}" — ${active?.name}`);
+    reloadDetail(activeId);
+  }
+  async function deleteDrawing(drawingId) {
+    const drawing = d.drawings.find((x) => x.id === drawingId);
+    if (!drawing || !confirm(`حذف المخطط "${drawing.title}" وملفه؟`)) return;
+    const { error } = await supabase.from("project_drawings").delete().eq("id", drawingId);
+    if (error) {
+      setDrawingError("تعذّر حذف المخطط: " + error.message);
+      return;
+    }
+    await removeAttachment(supabase, drawing.attachment_path).catch(() => {});
+    logAction(`حذف مخطط "${drawing.title}" — ${active?.name}`);
     reloadDetail(activeId);
   }
 
@@ -1283,7 +1364,9 @@ export function Dashboard({ profile, userEmail }) {
                   <TimelineTab key={activeId} active={active} isOwner={isOwner} phases={d.phases} newPhase={newPhase} setNewPhase={setNewPhase} addPhase={addPhase} updatePhaseField={updatePhaseField} deletePhase={deletePhase} />
                 )}
                 {effectiveTab === "documents" && (
-                  <DocumentsTab key={activeId} isOwner={isOwner} documents={d.documents} newDocument={newDocument} setNewDocument={setNewDocument} addDocument={addDocument} deleteDocument={deleteDocument} documentError={documentError} />
+                  <DocumentsTab key={activeId} isOwner={isOwner} documents={d.documents} newDocument={newDocument} setNewDocument={setNewDocument} addDocument={addDocument} deleteDocument={deleteDocument} documentError={documentError}
+                    drawings={d.drawings} drawingsMissing={d.drawingsMissing} addDrawing={addDrawing} updateDrawingField={updateDrawingField}
+                    replaceDrawingFile={replaceDrawingFile} deleteDrawing={deleteDrawing} drawingError={drawingError} />
                 )}
                 {effectiveTab === "qa" && (
                   <QaTab key={activeId} active={active} isOwner={isOwner} qaChecklist={d.qaChecklist} newQaItem={newQaItem} setNewQaItem={setNewQaItem} addQaItem={addQaItem} toggleQaItem={toggleQaItem} deleteQaItem={deleteQaItem} />

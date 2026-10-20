@@ -18,8 +18,8 @@
 - Checks before pushing: `npm ci`, `npx eslint components lib app`, `next build` (dummy `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` are enough). Delete `node_modules/` and `.next/` afterwards: the ignore file is named `gitignore` (no dot), so git does not use it.
 
 ## Database
-- Schema: `supabase/schema.sql`, then `supabase/migration_2.sql`, root `migration_3.sql`, `supabase/migration_4.sql` … `migration_6.sql` (all already run on production).
-- New DB changes go in the next `supabase/migration_N.sql` (next: 7). Make them safe to re-run (`if not exists`, `drop policy if exists`, `create or replace`).
+- Schema: `supabase/schema.sql`, then `supabase/migration_2.sql`, root `migration_3.sql`, `supabase/migration_4.sql` … `migration_7.sql` (all must be run on production in order).
+- New DB changes go in the next `supabase/migration_N.sql` (next: 8). Make them safe to re-run (`if not exists`, `drop policy if exists`, `create or replace`).
 - `profiles.more_access` (array of tab keys) exists in production but was added outside these files; `list_roster()` in production returns it. Don't redefine `list_roster()` without checking.
 - Permissions: `profiles.kind` (`admin` / `engineer` / `custom` / `viewer`), flags `reports_access`, `treasury_access`, `edit_access`, and `more_access` keys (`company`, `needs`, `compare`, `assets`, `assetsEdit`, `staffDirectory`). RLS helpers: `is_admin()`, `is_owner()`, `can_access_limited()`, `can_view_all_finance()`, `has_more_access()`, `can_view_assets()`, `can_edit_assets()`.
 - The owner may have more than one Supabase project; if SQL fails with "relation … does not exist", they are probably in the wrong project.
