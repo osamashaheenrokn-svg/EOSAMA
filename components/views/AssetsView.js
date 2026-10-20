@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ClipboardCheck, Download, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { Check, ClipboardCheck, Download, Eye, FileText, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import { PrintHeader } from "../PrintHeader";
 import { PrintButton } from "../PrintButton";
 import { daysUntil } from "@/lib/db";
@@ -111,8 +111,60 @@ function AssetDocSlots({ asset, canEdit, addAssetDocument, deleteAssetDocument }
   );
 }
 
+function AssetHeader({ asset, isAdmin, canEdit, updateAssetInfo, deleteAsset }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ type: "", number: "", yearMade: "" });
+
+  function startEdit() {
+    setForm({ type: asset.type || "", number: asset.number || "", yearMade: asset.year_made ? String(asset.year_made) : "" });
+    setEditing(true);
+  }
+  async function save() {
+    setSaving(true);
+    const ok = await updateAssetInfo(asset.id, form);
+    setSaving(false);
+    if (ok) setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="no-print flex flex-wrap items-end gap-2 mb-3 bg-stone-50 border border-stone-200 rounded-lg p-2.5">
+        <label className="text-xs text-stone-500 flex-1 min-w-[160px]">
+          نوع المعدة
+          <input value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className="block w-full border border-stone-300 rounded-lg px-2 py-1.5 text-sm text-stone-900" />
+        </label>
+        <label className="text-xs text-stone-500">
+          رقم المعدة / اللوحة
+          <input value={form.number} onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))} className="block w-40 border border-stone-300 rounded-lg px-2 py-1.5 text-sm text-stone-900" />
+        </label>
+        <label className="text-xs text-stone-500">
+          سنة الصنع
+          <input value={form.yearMade} onChange={(e) => setForm((f) => ({ ...f, yearMade: e.target.value.replace(/[^0-9]/g, "") }))} className="block w-24 border border-stone-300 rounded-lg px-2 py-1.5 text-sm text-stone-900" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }} />
+        </label>
+        <button onClick={save} disabled={saving} className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 disabled:opacity-50"><Check className="w-3.5 h-3.5" /> {saving ? "جاري الحفظ..." : "حفظ"}</button>
+        <button onClick={() => setEditing(false)} disabled={saving} className="border border-stone-300 text-stone-600 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"><X className="w-3.5 h-3.5" /> إلغاء</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <div className="font-bold">{asset.type} <span className="text-xs text-stone-400 font-normal">— {asset.number}</span></div>
+      <div className="no-print flex items-center gap-2">
+        {canEdit && (
+          <button onClick={startEdit} className="text-slate-700 border border-stone-300 rounded px-2 py-1 text-xs flex items-center gap-1"><Pencil className="w-3.5 h-3.5" /> تعديل</button>
+        )}
+        {isAdmin && (
+          <button onClick={() => deleteAsset(asset.id)} className="text-rose-600 border border-rose-200 rounded px-2 py-1 text-xs flex items-center gap-1"><Trash2 className="w-3.5 h-3.5" /> حذف</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AssetsView({
-  isAdmin, canEdit, companyAssets, newAsset, setNewAsset, addAsset, updateAssetField, deleteAsset, addAssetDocument, deleteAssetDocument,
+  isAdmin, canEdit, companyAssets, newAsset, setNewAsset, addAsset, updateAssetField, updateAssetInfo, deleteAsset, addAssetDocument, deleteAssetDocument,
   companyTools, newTool, setNewTool, addTool, updateToolField, deleteTool,
 }) {
   return (
@@ -151,12 +203,7 @@ export function AssetsView({
           const insStatus = insDays === null ? null : insDays < 0 ? { label: "منتهي", color: "bg-rose-100 text-rose-800" } : insDays <= 30 ? { label: `باقي ${insDays} يوم`, color: "bg-amber-100 text-amber-800" } : { label: "ساري", color: "bg-emerald-100 text-emerald-800" };
           return (
             <div key={a.id} className="bg-white border border-stone-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                <div className="font-bold">{a.type} <span className="text-xs text-stone-400 font-normal">— {a.number}</span></div>
-                {isAdmin && (
-                  <button onClick={() => deleteAsset(a.id)} className="no-print text-rose-600 border border-rose-200 rounded px-2 py-1 text-xs flex items-center gap-1"><Trash2 className="w-3.5 h-3.5" /> حذف</button>
-                )}
-              </div>
+              <AssetHeader asset={a} isAdmin={isAdmin} canEdit={canEdit} updateAssetInfo={updateAssetInfo} deleteAsset={deleteAsset} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                 <div className="text-xs text-stone-500">سنة الصنع: <b>{a.year_made || "—"}</b></div>
                 <div className="text-xs">
