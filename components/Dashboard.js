@@ -670,7 +670,26 @@ export function Dashboard({ profile, userEmail }) {
     await supabase.from("company_assets").update({ [field]: value || null }).eq("id", assetId);
     reloadCompanyAssets();
   }
+  async function updateAssetInfo(assetId, { type, number, yearMade }) {
+    const asset = companyAssets.find((a) => a.id === assetId);
+    if (!type.trim() || !number.trim()) {
+      alert("نوع المعدة ورقمها مطلوبين.");
+      return false;
+    }
+    const { error } = await supabase.from("company_assets")
+      .update({ type: type.trim(), number: number.trim(), year_made: Number(yearMade) || null })
+      .eq("id", assetId);
+    if (error) {
+      alert("تعذّر حفظ التعديل: " + error.message);
+      return false;
+    }
+    logAction(`تعديل بيانات أصل "${asset?.type}" (${asset?.number}) إلى "${type.trim()}" (${number.trim()})`);
+    reloadCompanyAssets();
+    return true;
+  }
   async function deleteAsset(assetId) {
+    const asset = companyAssets.find((a) => a.id === assetId);
+    if (!confirm(`حذف "${asset?.type}" (${asset?.number}) نهائيًا مع كل مستنداته؟`)) return;
     await supabase.from("company_assets").delete().eq("id", assetId);
     logAction("حذف أصل من سجل أصول الشركة");
     reloadCompanyAssets();
@@ -1194,7 +1213,7 @@ export function Dashboard({ profile, userEmail }) {
           canEdit={canEditAssets}
           isAdmin={isAdmin}
           companyAssets={companyAssets} newAsset={newAsset} setNewAsset={setNewAsset} addAsset={addAsset}
-          updateAssetField={updateAssetField} deleteAsset={deleteAsset} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument}
+          updateAssetField={updateAssetField} updateAssetInfo={updateAssetInfo} deleteAsset={deleteAsset} addAssetDocument={addAssetDocument} deleteAssetDocument={deleteAssetDocument}
           companyTools={companyTools} newTool={newTool} setNewTool={setNewTool} addTool={addTool} updateToolField={updateToolField} deleteTool={deleteTool}
         />
       )}
